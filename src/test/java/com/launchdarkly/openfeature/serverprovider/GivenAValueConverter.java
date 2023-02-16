@@ -84,9 +84,9 @@ public class GivenAValueConverter {
 
     @Test
     public void itCanConvertStructures() {
-        Value ofValueStructure = new Value(new ImmutableStructure(new HashMap<String, Value>(){{
+        Value ofValueStructure = new Value(new ImmutableStructure(new HashMap<String, Value>() {{
             put("aKey", new Value("aValue"));
-            put("structKey", new Value(new ImmutableStructure(new HashMap<String, Value>(){{
+            put("structKey", new Value(new ImmutableStructure(new HashMap<String, Value>() {{
                 put("bKey", new Value("bValue"));
             }})));
         }}));
