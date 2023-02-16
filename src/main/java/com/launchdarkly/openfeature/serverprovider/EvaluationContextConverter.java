@@ -91,7 +91,7 @@ class EvaluationContextConverter {
         }
 
         if (targetingKey == null || targetingKey == "") {
-            logger.error("The EvaluationContext must contain either a 'targetingKey' or a 'key' and the type " + "must be a string.");
+            logger.error("The EvaluationContext must contain either a 'targetingKey' or a 'key' and the type must be a string.");
         }
         return targetingKey;
     }
