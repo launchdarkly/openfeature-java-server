@@ -54,31 +54,68 @@ There are several other attributes which have special functionality within a sin
 #### A single user context
 
 ```java
-// TODO: Write
+    EvaluationContext context = new ImmutableContext("the-key");
 ```
 
 #### A single context of kind "organization"
 
 ```java
-// TODO: Write
+    EvaluationContext context = new ImmutableContext("org-key", new HashMap(){{
+        put("kind", new Value("organization"));
+        }});
 ```
 
 #### A multi-context containing a "user" and an "organization"
 
 ```java
-// TODO: Write
+EvaluationContext context = new ImmutableContext(new HashMap() {{
+    put("kind", new Value("multi"));
+    put("organization", new Value(new ImmutableStructure(new HashMap(){{
+        put("name", new Value("the-org-name"));
+        put("targetingKey", new Value("my-org-key"));
+        put("myCustomAttribute", new Value("myAttributeValue"));
+    }})));
+    put("user", new Value(new ImmutableStructure(new HashMap(){{
+        put("key", new Value("my-user-key"));
+        put("anonymous", new Value(true));
+    }})));
+}});
 ```
 
 #### Setting private attributes in a single context
 
 ```java
-// TODO: Write
+    EvaluationContext context = new ImmutableContext("org-key", new HashMap(){{
+        put("kind", new Value("organization"));
+        put("myCustomAttribute", new Value("myAttributeValue"));
+        put("privateAttributes", new Value(new ArrayList<Value>() {{
+            add(new Value("myCustomAttribute"));
+        }}));
+    }});
 ```
 
 #### Setting private attributes in a multi-context
 
 ```java
-// TODO: Write
+EvaluationContext evaluationContext = new ImmutableContext(new HashMap() {{
+    put("kind", new Value("multi"));
+    put("organization", new Value(new ImmutableStructure(new HashMap(){{
+        put("name", new Value("the-org-name"));
+        put("targetingKey", new Value("my-org-key"));
+        // This will ONLY apply to the "organization" attributes.
+        put("privateAttributes", new Value(new ArrayList<Value>() {{
+            add(new Value("myCustomAttribute"));
+        }}));
+        // This attribute will be private.
+        put("myCustomAttribute", new Value("myAttributeValue"));
+    }})));
+    put("user", new Value(new ImmutableStructure(new HashMap(){{
+        put("key", new Value("my-user-key"));
+        put("anonymous", new Value(true));
+        // This attribute will not be private.
+        put("myCustomAttribute", new Value("myAttributeValue"));
+    }})));
+}});
 ```
 
 ## Learn more
