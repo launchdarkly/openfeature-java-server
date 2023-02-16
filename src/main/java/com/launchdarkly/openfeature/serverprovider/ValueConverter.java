@@ -23,32 +23,32 @@ class ValueConverter {
     }
 
     public LDValue toLdValue(Value value) {
-        if(value.isNull()) {
+        if (value.isNull()) {
             return LDValue.ofNull();
         }
-        if(value.isBoolean()) {
+        if (value.isBoolean()) {
             return LDValue.of(value.asBoolean());
         }
-        if(value.isNumber()) {
+        if (value.isNumber()) {
             return LDValue.of(value.asDouble());
         }
-        if(value.isString()) {
+        if (value.isString()) {
             return LDValue.of(value.asString());
         }
-        if(value.isInstant()) {
+        if (value.isInstant()) {
             DateTimeFormatter formatter = DateTimeFormatter
                     .ISO_DATE_TIME
                     .withZone(ZoneId.from(ZoneOffset.UTC));
             return LDValue.of(formatter.format(value.asInstant()));
         }
-        if(value.isList()) {
+        if (value.isList()) {
             List<Value> asList = value.asList();
             List<LDValue> asLdValues = asList.stream()
                     .map(this::toLdValue)
                     .collect(Collectors.toList());
             return LDValue.arrayOf(asLdValues.toArray(new LDValue[0]));
         }
-        if(value.isStructure()) {
+        if (value.isStructure()) {
             ObjectBuilder objectBuilder = LDValue.buildObject();
             Structure structure = value.asStructure();
             structure.asMap().forEach((itemKey, itemValue) -> {

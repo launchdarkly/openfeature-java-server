@@ -16,12 +16,14 @@ public class GivenAValueConverter {
     private ValueConverter valueConverter = new ValueConverter(LDLogger.none());
     private final Double EPSILON = 0.00001;
 
-    @Test public void itCanConvertNull() {
+    @Test
+    public void itCanConvertNull() {
         LDValue value = valueConverter.toLdValue(new Value());
         assertTrue(value.isNull());
     }
 
-    @Test public void itCanConvertBooleans() {
+    @Test
+    public void itCanConvertBooleans() {
         LDValue trueValue = valueConverter.toLdValue(new Value(true));
         assertTrue(trueValue.booleanValue());
         assertEquals(trueValue.getType(), LDValueType.BOOLEAN);
@@ -31,7 +33,8 @@ public class GivenAValueConverter {
         assertEquals(falseValue.getType(), LDValueType.BOOLEAN);
     }
 
-    @Test public void itCanConvertNumbers() {
+    @Test
+    public void itCanConvertNumbers() {
         LDValue zeroValue = valueConverter.toLdValue(new Value(0));
         assertEquals(0.0, zeroValue.doubleValue(), EPSILON);
         assertTrue(zeroValue.isNumber());
@@ -41,19 +44,22 @@ public class GivenAValueConverter {
         assertTrue(numberValue.isNumber());
     }
 
-    @Test public void itCanConvertStrings() {
+    @Test
+    public void itCanConvertStrings() {
         LDValue stringValue = valueConverter.toLdValue(new Value("the string"));
         assertTrue(stringValue.isString());
         assertEquals("the string", stringValue.stringValue());
     }
 
-    @Test public void itCanConvertInstants() {
+    @Test
+    public void itCanConvertInstants() {
         LDValue dateString = valueConverter.toLdValue(new Value(Instant.ofEpochMilli(0)));
         assertEquals("1970-01-01T00:00:00Z", dateString.stringValue());
     }
 
-    @Test public void itCanConvertLists() {
-        Value ofValueList = new Value(new ArrayList<Value>(){{
+    @Test
+    public void itCanConvertLists() {
+        Value ofValueList = new Value(new ArrayList<Value>() {{
             add(new Value(true));
             add(new Value(false));
             add(new Value(17));
