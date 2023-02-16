@@ -72,7 +72,7 @@ class EvaluationContextConverter {
      */
     private String getTargetingKey(String targetingKey, Value keyAsValue) {
         // Currently the targeting key will always have a value, but it can be empty.
-        // So we want to tread an empty string as a not defined one. Later it could
+        // So we want to treat an empty string as a not defined one. Later it could
         // become null, so we will need to check that.
         if (targetingKey != "" && keyAsValue != null && keyAsValue.isString()) {
             // There is both a targeting key and a key. It will work, but probably
