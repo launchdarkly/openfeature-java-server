@@ -4,19 +4,16 @@ import com.launchdarkly.logging.LDLogger;
 import com.launchdarkly.sdk.ArrayBuilder;
 import com.launchdarkly.sdk.LDValue;
 import com.launchdarkly.sdk.ObjectBuilder;
-import dev.openfeature.sdk.ImmutableStructure;
 import dev.openfeature.sdk.Structure;
 import dev.openfeature.sdk.Value;
 import org.junit.Test;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 
 import static org.junit.Assert.*;
 
-public class GivenAnLdValueConverter {
-    private LDValueConverter valueConverter = new LDValueConverter(LDLogger.none());
+public class LdValueConverterTest {
+    private final LDValueConverter valueConverter = new LDValueConverter(LDLogger.none());
     private final Double EPSILON = 0.00001;
 
     @Test
@@ -77,13 +74,6 @@ public class GivenAnLdValueConverter {
 
     @Test
     public void itCanConvertStructures() {
-        Value ofValueStructure = new Value(new ImmutableStructure(new HashMap<String, Value>(){{
-            put("aKey", new Value("aValue"));
-            put("structKey", new Value(new ImmutableStructure(new HashMap<String, Value>(){{
-                put("bKey", new Value("bValue"));
-            }})));
-        }}));
-
         LDValue ldStructValue = new ObjectBuilder()
                 .put("aKey", "aValue")
                 .put("structKey", new ObjectBuilder().put("bKey", "bValue").build()).build();

@@ -36,12 +36,12 @@ public class Provider implements FeatureProvider {
 
     private final Metadata metaData = new ProviderMetaData();
 
-    private LDLogger logger;
-    private EvaluationDetailConverter evaluationDetailConverter;
-    private ValueConverter valueConverter;
-    private EvaluationContextConverter evaluationContextConverter;
+    private final LDLogger logger;
+    private final EvaluationDetailConverter evaluationDetailConverter;
+    private final ValueConverter valueConverter;
+    private final EvaluationContextConverter evaluationContextConverter;
 
-    private LDClientInterface client;
+    private final LDClientInterface client;
 
     /**
      * Create a provider with the given LaunchDarkly client and provider configuration.

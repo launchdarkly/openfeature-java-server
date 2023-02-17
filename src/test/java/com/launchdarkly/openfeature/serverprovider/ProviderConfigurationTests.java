@@ -1,13 +1,13 @@
 package com.launchdarkly.openfeature.serverprovider;
 
-import com.launchdarkly.logging.LDLogAdapter;
 import com.launchdarkly.logging.LDLogLevel;
 import com.launchdarkly.logging.LDLogger;
 import com.launchdarkly.sdk.server.Components;
 import com.launchdarkly.sdk.server.subsystems.LoggingConfiguration;
 import org.junit.Test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 
 public class ProviderConfigurationTests {

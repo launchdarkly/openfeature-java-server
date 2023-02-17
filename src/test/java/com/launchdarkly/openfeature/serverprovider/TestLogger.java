@@ -2,7 +2,6 @@ package com.launchdarkly.openfeature.serverprovider;
 
 import com.launchdarkly.logging.LDLogAdapter;
 import com.launchdarkly.logging.LDLogLevel;
-import jdk.nashorn.internal.runtime.regexp.joni.Regex;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -12,16 +11,15 @@ import java.util.HashMap;
  * and validate the content of those messages.
  */
 class TestLogger implements LDLogAdapter {
-    private HashMap<String, TestChannel> channels = new HashMap<>();
+    private final HashMap<String, TestChannel> channels = new HashMap<>();
 
     public TestChannel getChannel(String name) {
         return channels.get(name);
     }
 
-    public class TestChannel implements Channel {
-        private String name;
+    public static class TestChannel implements Channel {
 
-        private HashMap<LDLogLevel, ArrayList<String>> messages = new HashMap();
+        private final HashMap<LDLogLevel, ArrayList<String>> messages = new HashMap<>();
 
         public int countForLevel(LDLogLevel level) {
             if (messages.containsKey(level)) {
@@ -32,9 +30,7 @@ class TestLogger implements LDLogAdapter {
 
         public boolean expectedMessageInLevel(LDLogLevel level, String regexString) {
             if (messages.containsKey(level)) {
-                return messages.get(level).stream().anyMatch(value -> {
-                    return value.matches(regexString);
-                });
+                return messages.get(level).stream().anyMatch(value -> value.matches(regexString));
             }
             return false;
         }
@@ -43,12 +39,11 @@ class TestLogger implements LDLogAdapter {
             return messages.size() != 0;
         }
 
-        private TestChannel(String name) {
-            this.name = name;
+        private TestChannel(String ignoredName) {
         }
 
         private void addMessage(LDLogLevel ldLogLevel, String message) {
-            ArrayList<String> forLevel = messages.getOrDefault(ldLogLevel, new ArrayList());
+            ArrayList<String> forLevel = messages.getOrDefault(ldLogLevel, new ArrayList<>());
 
             forLevel.add(message);
 

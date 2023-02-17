@@ -9,16 +9,12 @@ import java.util.List;
 
 import static org.junit.Assert.*;
 
-public class GivenAnEvaluationDetailConverter {
+public class EvaluationDetailConverterTest {
     private final Double EPSILON = 0.00001;
     TestLogger testLogger = new TestLogger();
     EvaluationDetailConverter evaluationDetailConverter = new EvaluationDetailConverter(
             LDLogger.withAdapter(testLogger, "test-logger")
     );
-
-    private TestLogger.TestChannel logs() {
-        return testLogger.getChannel("test-logger");
-    }
 
     @Test
     public void itCanConvertDoubleEvaluationDetail() {
@@ -27,7 +23,7 @@ public class GivenAnEvaluationDetailConverter {
 
         ProviderEvaluation<Double> converted = evaluationDetailConverter.toEvaluationDetails(inputDetail);
 
-        assertEquals(3.0, converted.getValue().doubleValue(), EPSILON);
+        assertEquals(3.0, converted.getValue(), EPSILON);
         assertEquals("17", converted.getVariant());
         assertEquals(Reason.DISABLED.toString(), converted.getReason());
     }
