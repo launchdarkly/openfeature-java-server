@@ -77,7 +77,6 @@ public class Provider implements FeatureProvider {
         this(client, ProviderConfiguration.builder().build());
     }
 
-
     @Override
     public Metadata getMetadata() {
         return metaData;
