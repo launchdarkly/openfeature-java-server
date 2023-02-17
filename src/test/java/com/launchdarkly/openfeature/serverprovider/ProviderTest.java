@@ -11,7 +11,7 @@ import org.junit.Test;
 import static org.mockito.Mockito.*;
 import static org.junit.Assert.*;
 
-public class GivenAProviderWithMockLdClient {
+public class ProviderTest {
     LDClientInterface mockedLdClient = mock(LDClientInterface.class);
     Provider ldProvider = new Provider(mockedLdClient);
 

@@ -14,8 +14,8 @@ import java.util.List;
 
 import static org.junit.Assert.*;
 
-public class GivenAValueConverter {
-    private ValueConverter valueConverter = new ValueConverter(LDLogger.none());
+public class ValueConverterTest {
+    private final ValueConverter valueConverter = new ValueConverter(LDLogger.none());
     private final Double EPSILON = 0.00001;
 
     @Test
@@ -70,7 +70,7 @@ public class GivenAValueConverter {
         }});
 
         LDValue ldValue = valueConverter.toLdValue(ofValueList);
-        List<LDValue> ldValueList = new ArrayList();
+        List<LDValue> ldValueList = new ArrayList<>();
         ldValue.values().forEach(ldValueList::add);
 
         assertEquals(5, ldValueList.size());
@@ -93,10 +93,10 @@ public class GivenAValueConverter {
 
         LDValue ldValue = valueConverter.toLdValue(ofValueStructure);
 
-        List<String> keyList = new ArrayList();
+        List<String> keyList = new ArrayList<>();
         ldValue.keys().forEach(keyList::add);
 
-        List<LDValue> valueList = new ArrayList();
+        List<LDValue> valueList = new ArrayList<>();
         ldValue.values().forEach(valueList::add);
 
         assertEquals("aKey", keyList.get(0));

@@ -15,7 +15,7 @@ import java.util.HashMap;
 
 import static org.junit.Assert.*;
 
-public class GivenAContextConverter {
+public class ContextConverterTest {
     TestLogger testLogger = new TestLogger();
     EvaluationContextConverter evaluationContextConverter = new EvaluationContextConverter(
             LDLogger.withAdapter(testLogger, "test-logger")
@@ -31,7 +31,7 @@ public class GivenAContextConverter {
         LDContext converted = evaluationContextConverter.toLdContext(new ImmutableContext("the-key"));
         assertEquals(expectedContext, converted);
 
-        HashMap<String, Value> attributes = new HashMap();
+        HashMap<String, Value> attributes = new HashMap<>();
         attributes.put("key", new Value("the-key"));
         LDContext convertedKey = evaluationContextConverter.toLdContext(new ImmutableContext(attributes));
         assertEquals(expectedContext, convertedKey);
@@ -44,7 +44,7 @@ public class GivenAContextConverter {
         LDContext expectedContext = LDContext.builder(ContextKind.of("organization"), "org-key").build();
 
         LDContext converted = evaluationContextConverter
-                .toLdContext(new ImmutableContext("org-key", new HashMap() {{
+                .toLdContext(new ImmutableContext("org-key", new HashMap<String, Value>() {{
                     put("kind", new Value("organization"));
                 }}));
 
@@ -66,7 +66,7 @@ public class GivenAContextConverter {
     public void itGivesTargetingKeyPrecedence() {
         LDContext expectedContext = LDContext.builder("key-to-use").build();
 
-        HashMap<String, Value> attributes = new HashMap();
+        HashMap<String, Value> attributes = new HashMap<>();
         attributes.put("key", new Value("key-not-to-use"));
 
         LDContext converted = evaluationContextConverter.toLdContext(
@@ -80,7 +80,7 @@ public class GivenAContextConverter {
 
     @Test
     public void itHandlesAKeyOfIncorrectType() {
-        HashMap<String, Value> attributes = new HashMap();
+        HashMap<String, Value> attributes = new HashMap<>();
         attributes.put("key", new Value(0));
 
         evaluationContextConverter.toLdContext(
@@ -98,7 +98,7 @@ public class GivenAContextConverter {
     public void itHandlesInvalidBuiltInAttributes() {
         LDContext expectedContext = LDContext.builder("user-key").build();
 
-        HashMap<String, Value> attributes = new HashMap();
+        HashMap<String, Value> attributes = new HashMap<>();
         attributes.put("name", new Value(3));
         attributes.put("anonymous", new Value("potato"));
         // The attributes were not valid, so they should be discarded.
@@ -123,7 +123,7 @@ public class GivenAContextConverter {
                 .anonymous(true)
                 .build();
 
-        HashMap<String, Value> attributes = new HashMap();
+        HashMap<String, Value> attributes = new HashMap<>();
         attributes.put("name", new Value("the-name"));
         attributes.put("anonymous", new Value(true));
 
@@ -148,9 +148,9 @@ public class GivenAContextConverter {
                         .build()
         );
 
-        EvaluationContext evaluationContext = new ImmutableContext(new HashMap() {{
+        EvaluationContext evaluationContext = new ImmutableContext(new HashMap<String, Value>() {{
             put("kind", new Value("multi"));
-            put("organization", new Value(new ImmutableStructure(new HashMap() {{
+            put("organization", new Value(new ImmutableStructure(new HashMap<String, Value>() {{
                 put("name", new Value("the-org-name"));
                 put("targetingKey", new Value("my-org-key"));
                 put("myCustomAttribute", new Value("myAttributeValue"));
@@ -158,7 +158,7 @@ public class GivenAContextConverter {
                     add(new Value("myCustomAttribute"));
                 }}));
             }})));
-            put("user", new Value(new ImmutableStructure(new HashMap() {{
+            put("user", new Value(new ImmutableStructure(new HashMap<String, Value>() {{
                 put("key", new Value("my-user-key"));
                 put("anonymous", new Value(true));
                 put("myCustomAttribute", new Value("myAttributeValue"));
