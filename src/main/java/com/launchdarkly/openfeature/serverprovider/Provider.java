@@ -5,6 +5,7 @@ import com.launchdarkly.logging.LDLogger;
 import com.launchdarkly.sdk.EvaluationDetail;
 import com.launchdarkly.sdk.LDValue;
 import com.launchdarkly.sdk.server.LDClient;
+import com.launchdarkly.sdk.server.interfaces.LDClientInterface;
 import com.launchdarkly.sdk.server.subsystems.LoggingConfiguration;
 import dev.openfeature.sdk.*;
 
@@ -40,7 +41,7 @@ public class Provider implements FeatureProvider {
     private ValueConverter valueConverter;
     private EvaluationContextConverter evaluationContextConverter;
 
-    private LDClient client;
+    private LDClientInterface client;
 
     /**
      * Create a provider with the given LaunchDarkly client and provider configuration.
@@ -55,7 +56,7 @@ public class Provider implements FeatureProvider {
      * @param client A {@link LDClient} instance.
      * @param config Configuration for the provider.
      */
-    public Provider(LDClient client, ProviderConfiguration config) {
+    public Provider(LDClientInterface client, ProviderConfiguration config) {
         this.client = client;
         LoggingConfiguration loggingConfig = config.getLoggingConfigurationFactory().build(null);
         LDLogAdapter adapter = loggingConfig.getLogAdapter();
@@ -73,7 +74,7 @@ public class Provider implements FeatureProvider {
      *
      * @param client A {@link LDClient} instance.
      */
-    public Provider(LDClient client) {
+    public Provider(LDClientInterface client) {
         this(client, ProviderConfiguration.builder().build());
     }
 
