@@ -24,7 +24,22 @@ TODO: Implement
 
 ### Usage
 
-TODO: Implement
+```java
+package org.example;
+
+import dev.openfeature.sdk.OpenFeatureAPI;
+import com.launchdarkly.sdk.server.LDClient;
+
+public class Main {
+    public static void main(String[] args) {
+        LDClient ldClient = new LDClient("my-sdk-key");
+        OpenFeatureAPI.getInstance().setProvider(new Provider(ldClient));
+        
+        // Refer to OpenFeature documentation for getting a client and performing evaluations.
+    }
+}
+
+```
 
 Refer to the [SDK reference guide](https://docs.launchdarkly.com/sdk/server-side/java) for instructions on getting started with using the SDK.
 
