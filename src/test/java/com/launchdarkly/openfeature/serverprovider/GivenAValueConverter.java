@@ -3,11 +3,13 @@ package com.launchdarkly.openfeature.serverprovider;
 import com.launchdarkly.logging.LDLogger;
 import com.launchdarkly.sdk.LDValue;
 import com.launchdarkly.sdk.LDValueType;
+import dev.openfeature.sdk.ImmutableStructure;
 import dev.openfeature.sdk.Value;
 import org.junit.Test;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import static org.junit.Assert.*;
@@ -78,5 +80,31 @@ public class GivenAValueConverter {
         assertEquals(17.0, ldValueList.get(2).doubleValue(), EPSILON);
         assertEquals(42.5, ldValueList.get(3).doubleValue(), EPSILON);
         assertEquals("string", ldValueList.get(4).stringValue());
+    }
+
+    @Test
+    public void itCanConvertStructures() {
+        Value ofValueStructure = new Value(new ImmutableStructure(new HashMap<String, Value>() {{
+            put("aKey", new Value("aValue"));
+            put("structKey", new Value(new ImmutableStructure(new HashMap<String, Value>() {{
+                put("bKey", new Value("bValue"));
+            }})));
+        }}));
+
+        LDValue ldValue = valueConverter.toLdValue(ofValueStructure);
+
+        List<String> keyList = new ArrayList();
+        ldValue.keys().forEach(keyList::add);
+
+        List<LDValue> valueList = new ArrayList();
+        ldValue.values().forEach(valueList::add);
+
+        assertEquals("aKey", keyList.get(0));
+        assertEquals("structKey", keyList.get(1));
+
+        assertEquals("aValue", valueList.get(0).stringValue());
+
+        assertEquals("bKey", valueList.get(1).keys().iterator().next());
+        assertEquals("bValue", valueList.get(1).values().iterator().next().stringValue());
     }
 }

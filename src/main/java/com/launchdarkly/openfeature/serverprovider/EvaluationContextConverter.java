@@ -10,7 +10,7 @@ import dev.openfeature.sdk.Value;
 
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.Objects;
 
 /**
  * Converts an OpenFeature EvaluationContext into a LDContext.
@@ -43,7 +43,7 @@ class EvaluationContextConverter {
         String finalKind = "user";
         if (kindAsValue != null && kindAsValue.isString()) {
             String kindString = kindAsValue.asString();
-            if (kindString == "multi") {
+            if (Objects.equals(kindString, "multi")) {
                 // A multi-context.
                 return BuildMultiContext(evaluationContext);
             } else {
@@ -74,7 +74,7 @@ class EvaluationContextConverter {
         // Currently the targeting key will always have a value, but it can be empty.
         // So we want to treat an empty string as a not defined one. Later it could
         // become null, so we will need to check that.
-        if (targetingKey != "" && keyAsValue != null && keyAsValue.isString()) {
+        if (!Objects.equals(targetingKey, "") && keyAsValue != null && keyAsValue.isString()) {
             // There is both a targeting key and a key. It will work, but probably
             // is not intentional.
             logger.warn("EvaluationContext contained both a 'key' and 'targetingKey'.");
@@ -87,11 +87,11 @@ class EvaluationContextConverter {
 
         if (keyAsValue != null && keyAsValue.isString()) {
             // Targeting key takes precedence over key, because targeting key is in the spec.
-            targetingKey = targetingKey != "" ? targetingKey : keyAsValue.asString();
+            targetingKey = !Objects.equals(targetingKey, "") ? targetingKey : keyAsValue.asString();
         }
 
-        if (targetingKey == null || targetingKey == "") {
-            logger.error("The EvaluationContext must contain either a 'targetingKey' or a 'key' and the type must be a string.");
+        if (targetingKey == null || targetingKey.equals("")) {
+            logger.error("The EvaluationContext must contain either a 'targetingKey' or a 'key' and the type " + "must be a string.");
         }
         return targetingKey;
     }
@@ -107,7 +107,7 @@ class EvaluationContextConverter {
 
         evaluationContext.asMap().forEach((kind, attributes) -> {
             // Do not need to do anything for the kind key.
-            if (kind == "kind") return;
+            if (Objects.equals(kind, "kind")) return;
 
             if (!attributes.isStructure()) {
                 // The attributes need to be a structure to be part of a multi-context.
@@ -140,24 +140,24 @@ class EvaluationContextConverter {
 
         attributes.forEach((attrKey, attrValue) -> {
             // Key has been processed, so we can skip it.
-            if (attrKey == "key" || attrKey == "targetingKey") return;
+            if (Objects.equals(attrKey, "key") || Objects.equals(attrKey, "targetingKey")) return;
 
-            if (attrKey == "privateAttributes") {
+            if (Objects.equals(attrKey, "privateAttributes")) {
                 List<Value> valueList = attrValue.asList();
                 if (valueList == null) {
                     logger.error("A key of 'privateAttributes' in an evaluation context must have a list value.");
                     return;
                 }
-                boolean allStrings = valueList.stream().allMatch(item -> item.isString());
+                boolean allStrings = valueList.stream().allMatch(Value::isString);
                 if (!allStrings) {
                     logger.error("A key of 'privateAttributes' must be a list of only string values.");
                     return;
                 }
 
-                builder.privateAttributes(valueList.stream().map(item -> item.asString()).collect(Collectors.toList()).toArray(new String[0]));
+                builder.privateAttributes(valueList.stream().map(Value::asString).toArray(String[]::new));
                 return;
             }
-            if (attrKey == "anonymous") {
+            if (Objects.equals(attrKey, "anonymous")) {
                 if (!attrValue.isBoolean()) {
                     logger.error("The attribute 'anonymous' must be a boolean and it was not.");
                 } else {
@@ -165,7 +165,7 @@ class EvaluationContextConverter {
                 }
                 return;
             }
-            if (attrKey == "name") {
+            if (Objects.equals(attrKey, "name")) {
                 if (!attrValue.isString()) {
                     logger.error("The attribute 'name' must be a string and it was not.");
                 } else {
