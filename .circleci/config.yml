@@ -1,0 +1,96 @@
+version: 2.1
+
+orbs:
+  win: circleci/windows@5.0.0
+
+workflows:
+  test:
+    jobs:
+      - build-linux
+      - test-linux:
+          name: Java 8 - Linux - OpenJDK
+          docker-image: cimg/openjdk:8.0
+          requires:
+            - build-linux
+      - test-linux:
+          name: Java 11 - Linux - OpenJDK
+          docker-image: cimg/openjdk:11.0
+          requires:
+            - build-linux
+      - test-linux:
+          # current LTS version
+          name: Java 17 - Linux - OpenJDK
+          docker-image: cimg/openjdk:17.0
+          with-coverage: true
+          requires:
+            - build-linux
+      - test-linux:
+          name: Java 19 - Linux - OpenJDK
+          docker-image: cimg/openjdk:19.0
+          requires:
+            - build-linux
+      - packaging:
+          requires:
+            - build-linux
+
+jobs:
+  build-linux:
+    docker:
+      - image: cimg/openjdk:8.0
+    steps:
+      - checkout
+      - run: java -version
+      - run: ./gradlew dependencies
+      - run: ./gradlew jar
+      - persist_to_workspace:
+          root: build
+          paths:
+            - classes
+
+  test-linux:
+    parameters:
+      docker-image:
+        type: string
+      with-coverage:
+        type: boolean
+        default: false
+    docker:
+      - image: <<parameters.docker-image>>
+    steps:
+      - checkout
+      - attach_workspace:
+          at: build
+      - run: java -version
+      - run:
+          name: Run tests
+          command: ./gradlew test
+      - run:
+          name: Save test results
+          command: |
+            mkdir -p ~/junit/
+            find . -type f -regex ".*/build/test-results/test/.*xml" -exec cp {} ~/junit/ \;
+          when: always
+
+      - store_test_results:
+          path: ~/junit
+      - store_artifacts:
+          path: ~/junit
+      - store_artifacts:
+          path: ./build/reports/jacoco/test/html
+          destination: coverage
+
+  packaging:
+    docker:
+      - image: cimg/openjdk:8.0
+    steps:
+      - run: java -version
+      - run: sudo apt-get install make -y -q
+      - checkout
+      - attach_workspace:
+          at: build
+      - run:
+          name: checkstyle/javadoc
+          command: ./gradlew javadoc checkstyleMain
+      - run:
+          name: Publish to local maven
+          command: ./gradlew publishToMavenLocal
