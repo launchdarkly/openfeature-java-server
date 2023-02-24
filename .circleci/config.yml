@@ -93,4 +93,4 @@ jobs:
           command: ./gradlew javadoc checkstyleMain
       - run:
           name: Publish to local maven
-          command: ./gradlew publishToMavenLocal
+          command: ./gradlew publishToMavenLocal -P LD_SKIP_SIGNING=1
