@@ -51,6 +51,7 @@ publishing {
             pom {
                 name = 'LaunchDarkly OpenFeature provider for the Server-Side SDK for Java'
                 packaging = 'jar'
+                description = 'Official LaunchDarkly OpenFeature provider for the Server-Side SDK for Java'
                 url = 'https://github.com/launchdarkly/openfeature-java-server'
 
                 licenses {
