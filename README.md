@@ -20,7 +20,20 @@ This version of the LaunchDarkly provider works with Java 8 and above.
 
 ### Installation
 
-TODO: Implement
+First, install the LaunchDarkly OpenFeature provider for the Server-Side SDK for Java as a dependency in your application using your application's dependency manager.
+
+```xml
+<dependency>
+  <groupId>com.launchdarkly</groupId>
+  <artifactId>launchdarkly-openfeature-serverprovider</artifactId>
+  <version>0.1.0</version> <!-- use current version number -->
+</dependency>
+```
+
+```groovy
+implementation group: 'com.launchdarkly', name: 'launchdarkly-openfeature-serverprovider', version: '0.1.0'
+// Use current version number in place of 0.1.0.
+```
 
 ### Usage
 
