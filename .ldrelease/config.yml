@@ -1,0 +1,22 @@
+version: 2
+
+publications:
+  - url: https://oss.sonatype.org/content/groups/public/com/launchdarkly/launchdarkly-openfeature-serverprovider/
+    description: Sonatype
+  - url: https://javadoc.io/doc/com.launchdarkly/launchdarkly-openfeature-serverprovider
+    description: documentation (javadoc.io)
+
+jobs:
+  - docker:
+      image: gradle:7.6-jdk11
+    template:
+      name: gradle
+
+branches:
+  - name: main
+
+documentation:
+  gitHubPages: true
+
+sdk:
+  displayName: "Java OpenFeature Provider Server-Side"
