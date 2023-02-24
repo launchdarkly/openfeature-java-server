@@ -18,6 +18,16 @@ This version of the LaunchDarkly provider works with Java 8 and above.
 
 ## Getting started
 
+### Requisites
+
+Your project will need compatible versions of the LaunchDarkly Server-Side SDK for Java as well as the OpenFeature java-sdk.
+
+Example gradle dependencies:
+```groovy
+implementation group: 'com.launchdarkly', name: 'launchdarkly-java-server-sdk', version: '[6.0.0, 7.0.0)'
+implementation 'dev.openfeature:sdk:[1.2.0,2.0.0)'
+```
+
 ### Installation
 
 First, install the LaunchDarkly OpenFeature provider for the Server-Side SDK for Java as a dependency in your application using your application's dependency manager.
@@ -38,10 +48,9 @@ implementation group: 'com.launchdarkly', name: 'launchdarkly-openfeature-server
 ### Usage
 
 ```java
-package org.example;
-
 import dev.openfeature.sdk.OpenFeatureAPI;
 import com.launchdarkly.sdk.server.LDClient;
+import com.launchdarkly.openfeature.serverprovider.Provider;
 
 public class Main {
     public static void main(String[] args) {
