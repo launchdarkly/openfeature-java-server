@@ -92,5 +92,5 @@ jobs:
           name: checkstyle/javadoc
           command: ./gradlew javadoc checkstyleMain
       - run:
-          name: build all SDK jars
+          name: Publish to local maven
           command: ./gradlew publishToMavenLocal
