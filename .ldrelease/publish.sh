@@ -10,7 +10,7 @@ if [[ -n "${LD_RELEASE_IS_PRERELEASE}" ]]; then
     exit 1
   }
 else
-  ./gradlew publishToSonatype closeAndReleaseRepository || {
+  ./gradlew publishToSonatype closeAndReleaseSonatypeStagingRepository || {
     echo "Gradle publish/release failed" >&2
     exit 1
   }
