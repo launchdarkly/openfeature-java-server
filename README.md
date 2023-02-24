@@ -14,7 +14,7 @@ This provider is a beta version and should not be considered ready for productio
 
 ## Supported Java versions
 
-This version of the LaunchDarkly provider works with Java 8 and above.
+This version of the LaunchDarkly provider works with Java 11 and above.
 
 ## Getting started
 
