@@ -3,11 +3,11 @@ package com.launchdarkly.openfeature.serverprovider;
 import com.launchdarkly.logging.LDLogger;
 import com.launchdarkly.sdk.*;
 import dev.openfeature.sdk.*;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class EvaluationDetailConverterTest {
     private final Double EPSILON = 0.00001;

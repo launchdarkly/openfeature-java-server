@@ -24,8 +24,8 @@ Your project will need compatible versions of the LaunchDarkly Server-Side SDK f
 
 Example gradle dependencies:
 ```groovy
-implementation group: 'com.launchdarkly', name: 'launchdarkly-java-server-sdk', version: '[6.0.0, 7.0.0)'
-implementation 'dev.openfeature:sdk:[1.2.0,2.0.0)'
+implementation group: 'com.launchdarkly', name: 'launchdarkly-java-server-sdk', version: '[7.1.0, 8.0.0)'
+implementation 'dev.openfeature:sdk:[1.7.0,2.0.0)'
 ```
 
 ### Installation
@@ -54,8 +54,7 @@ import com.launchdarkly.openfeature.serverprovider.Provider;
 
 public class Main {
     public static void main(String[] args) {
-        LDClient ldClient = new LDClient("my-sdk-key");
-        OpenFeatureAPI.getInstance().setProvider(new Provider(ldClient));
+        OpenFeatureAPI.getInstance().setProvider(new Provider("my-sdk-key"));
         
         // Refer to OpenFeature documentation for getting a client and performing evaluations.
     }
@@ -85,6 +84,16 @@ There are several other attributes which have special functionality within a sin
 - A key of `privateAttributes`. Must be an array of string values. [Equivalent to the 'privateAttributes' builder method in the SDK.](https://launchdarkly.github.io/java-server-sdk/com/launchdarkly/sdk/ContextBuilder.html#privateAttributes(java.lang.String...))
 - A key of `anonymous`. Must be a boolean value.  [Equivalent to the 'anonymous' builder method in the SDK.](https://launchdarkly.github.io/java-server-sdk/com/launchdarkly/sdk/ContextBuilder.html#anonymous(boolean))
 - A key of `name`. Must be a string. [Equivalent to the 'name' builder method in the SDK.](https://launchdarkly.github.io/java-server-sdk/com/launchdarkly/sdk/ContextBuilder.html#name(java.lang.String))
+
+### Initialization and Shutdown
+
+The LaunchDarkly supports Initialization and Shutdown using the OpenFeature API. The provider begins initialization as soon as it is constructed, and the underlying LaunchDarkly SDK will block execution based on the configured start wait time. If you wish to defer the blocking behavior, then you can use the `startWait` function when building the `LDConfig`.
+
+OpenFeature will report when the provider is ready, and additionally the `setProviderAndWait` function of the OpenFeature
+API can be used to wait until the provider is ready, or it has encountered a permanent error.
+
+It the provider has been shutdown, because the OpenFeature API has been shutdown, or because the provider was no longer in use by the OpenFeature API, then the underlying LaunchDarkly SDK will be closed.
+This is an important consideration if you are using the `getLdClient` method of the provider to access the underlying SDK instance.
 
 ### Examples
 
