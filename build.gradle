@@ -122,8 +122,7 @@ dependencies {
     // This dependency is used internally, and not exposed to consumers on their own compile classpath.
     implementation 'com.google.guava:guava:23.0'
 
-    implementation group: 'com.launchdarkly', name: 'launchdarkly-java-server-sdk', version: '7.1.0-SNAPSHOT'
-//    implementation group: 'com.launchdarkly', name: 'launchdarkly-java-server-sdk', version: '[7.1.0, 8.0.0)'
+    implementation group: 'com.launchdarkly', name: 'launchdarkly-java-server-sdk', version: '[7.1.0, 8.0.0)'
     implementation 'dev.openfeature:sdk:[1.7.0,2.0.0)'
 
     // Use JUnit test framework
