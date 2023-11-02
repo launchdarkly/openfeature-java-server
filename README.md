@@ -8,7 +8,7 @@ This provider is a beta version and should not be considered ready for productio
 
 # LaunchDarkly overview
 
-[LaunchDarkly](https://www.launchdarkly.com) is a feature management platform that serves over 100 billion feature flags daily to help teams build better software, faster. [Get started](https://docs.launchdarkly.com/home/getting-started) using LaunchDarkly today!
+[LaunchDarkly](https://www.launchdarkly.com) is a feature management platform that serves trillions of feature flags daily to help teams build better software, faster. [Get started](https://docs.launchdarkly.com/home/getting-started) using LaunchDarkly today!
 
 [![Twitter Follow](https://img.shields.io/twitter/follow/launchdarkly.svg?style=social&label=Follow&maxAge=2592000)](https://twitter.com/intent/follow?screen_name=launchdarkly)
 
@@ -81,9 +81,9 @@ The `kind` attribute should be a string containing only contain ASCII letters, n
 The OpenFeature specification allows for an optional targeting key, but LaunchDarkly requires a key for evaluation. A targeting key must be specified for each context being evaluated. It may be specified using either `targetingKey`, as it is in the OpenFeature specification, or `key`, which is the typical LaunchDarkly identifier for the targeting key. If a `targetingKey` and a `key` are specified, then the `targetingKey` will take precedence.
 
 There are several other attributes which have special functionality within a single or multi-context.
-- A key of `privateAttributes`. Must be an array of string values. [Equivalent to the 'Private' builder method in the SDK.](https://launchdarkly.github.io/dotnet-server-sdk/api/LaunchDarkly.Sdk.ContextBuilder.html#LaunchDarkly_Sdk_ContextBuilder_Private_System_String___)
-- A key of `anonymous`. Must be a boolean value.  [Equivalent to the 'Anonymous' builder method in the SDK.](https://launchdarkly.github.io/dotnet-server-sdk/api/LaunchDarkly.Sdk.Context.html#LaunchDarkly_Sdk_Context_Anonymous)
-- A key of `name`. Must be a string. [Equivalent to the 'Name' builder method in the SDK.](https://launchdarkly.github.io/dotnet-server-sdk/api/LaunchDarkly.Sdk.ContextBuilder.html#LaunchDarkly_Sdk_ContextBuilder_Name_System_String_)
+- A key of `privateAttributes`. Must be an array of string values. [Equivalent to the 'privateAttributes' builder method in the SDK.](https://launchdarkly.github.io/java-server-sdk/com/launchdarkly/sdk/ContextBuilder.html#privateAttributes(java.lang.String...))
+- A key of `anonymous`. Must be a boolean value.  [Equivalent to the 'anonymous' builder method in the SDK.](https://launchdarkly.github.io/java-server-sdk/com/launchdarkly/sdk/ContextBuilder.html#anonymous(boolean))
+- A key of `name`. Must be a string. [Equivalent to the 'name' builder method in the SDK.](https://launchdarkly.github.io/java-server-sdk/com/launchdarkly/sdk/ContextBuilder.html#name(java.lang.String))
 
 ### Initialization and Shutdown
 
@@ -166,7 +166,7 @@ EvaluationContext evaluationContext = new ImmutableContext(new HashMap() {{
 
 ## Learn more
 
-Check out our [documentation](http://docs.launchdarkly.com) for in-depth instructions on configuring and using LaunchDarkly. You can also head straight to the [complete reference guide for this SDK](https://docs.launchdarkly.com/sdk/server-side/dotnet).
+Read our [documentation](http://docs.launchdarkly.com) for in-depth instructions on configuring and using LaunchDarkly. You can also head straight to the [complete reference guide for this SDK](https://docs.launchdarkly.com/sdk/server-side/dotnet).
 
 The authoritative description of all properties and methods is in the [java documentation](https://launchdarkly.github.io/java-server-sdk/).
 
