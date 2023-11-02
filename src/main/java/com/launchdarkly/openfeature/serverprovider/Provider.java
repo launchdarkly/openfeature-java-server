@@ -184,7 +184,7 @@ public class Provider extends EventProvider {
 
         if (!initialized) {
             // Here we throw an exception for the OpenFeature SDK, which will handle emitting an event.
-            throw new TimeoutException("Timed out waiting for client to initialize.");
+            throw new RuntimeException("Failed to initialize LaunchDarkly client.");
         }
     }
 
