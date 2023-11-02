@@ -8,11 +8,6 @@ workflows:
     jobs:
       - build-linux
       - test-linux:
-          name: Java 8 - Linux - OpenJDK
-          docker-image: cimg/openjdk:8.0
-          requires:
-            - build-linux
-      - test-linux:
           name: Java 11 - Linux - OpenJDK
           docker-image: cimg/openjdk:11.0
           requires:
@@ -36,7 +31,7 @@ workflows:
 jobs:
   build-linux:
     docker:
-      - image: cimg/openjdk:8.0
+      - image: cimg/openjdk:11.0
     steps:
       - checkout
       - run: java -version
@@ -81,7 +76,7 @@ jobs:
 
   packaging:
     docker:
-      - image: cimg/openjdk:8.0
+      - image: cimg/openjdk:11.0
     steps:
       - run: java -version
       - run: sudo apt-get install make -y -q

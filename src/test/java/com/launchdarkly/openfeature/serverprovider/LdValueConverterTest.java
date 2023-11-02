@@ -6,11 +6,11 @@ import com.launchdarkly.sdk.LDValue;
 import com.launchdarkly.sdk.ObjectBuilder;
 import dev.openfeature.sdk.Structure;
 import dev.openfeature.sdk.Value;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class LdValueConverterTest {
     private final LDValueConverter valueConverter = new LDValueConverter(LDLogger.none());
