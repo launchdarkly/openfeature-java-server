@@ -5,14 +5,14 @@ import com.launchdarkly.sdk.LDValue;
 import com.launchdarkly.sdk.LDValueType;
 import dev.openfeature.sdk.ImmutableStructure;
 import dev.openfeature.sdk.Value;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class ValueConverterTest {
     private final ValueConverter valueConverter = new ValueConverter(LDLogger.none());

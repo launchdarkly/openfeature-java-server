@@ -90,7 +90,7 @@ class EvaluationContextConverter {
             targetingKey = !Objects.equals(targetingKey, "") ? targetingKey : keyAsValue.asString();
         }
 
-        if (targetingKey == null || targetingKey.equals("")) {
+        if (targetingKey == null || targetingKey.isEmpty()) {
             logger.error("The EvaluationContext must contain either a 'targetingKey' or a 'key' and the type " + "must be a string.");
         }
         return targetingKey;
