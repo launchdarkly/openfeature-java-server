@@ -146,7 +146,6 @@ public class Provider extends EventProvider {
         });
         // Listen for future status changes.
         client.getDataSourceStatusProvider().addStatusListener((res) -> {
-            // TODO: Add event emitting.
             switch (res.getState()) {
                 // We will not re-enter INITIALIZING, but it is here to make the switch exhaustive.
                 case INITIALIZING: {
