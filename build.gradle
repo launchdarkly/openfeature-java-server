@@ -93,24 +93,16 @@ publishing {
 }
 
 signing {
+    required { findProperty("skipSigning") != "true" }
     sign publishing.publications.mavenJava
-}
-
-tasks.withType(Sign) { t ->
-    onlyIf { !shouldSkipSigning() } // so we can build jars for testing in CI
-}
-
-def shouldSkipSigning() {
-    return "1".equals(project.findProperty("LD_SKIP_SIGNING")) ||
-            "1".equals(System.getenv("LD_SKIP_SIGNING"))
 }
 
 nexusPublishing {
     clientTimeout = java.time.Duration.ofMinutes(2) // we've seen extremely long delays in creating repositories
     repositories {
         sonatype {
-            username = ossrhUsername
-            password = ossrhPassword
+            username = findProperty("ossrhUsername")
+            password = findProperty("ossrhPassword")
         }
     }
 }

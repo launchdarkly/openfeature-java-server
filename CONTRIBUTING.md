@@ -30,7 +30,7 @@ If you wish to clean your working directory between builds, you can clean it by 
 
 If you wish to use your generated provider artifact by another Maven/Gradle project, you will likely want to publish the artifact to your local Maven repository so that your other project can access it.
 ```
-./gradlew publishToMavenLocal
+./gradlew publishToMavenLocal -PskipSigning=true
 ```
 
 ### Testing

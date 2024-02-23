@@ -1,0 +1,24 @@
+name: Build and Test
+on:
+  workflow_dispatch:
+  push:
+    branches: [ 'main' ]
+    paths-ignore:
+      - '**.md' # Do not need to run CI for markdown changes.
+  pull_request:
+    branches: [ 'main' ]
+    paths-ignore:
+      - '**.md'
+
+jobs:
+  ci-build:
+    strategy:
+      matrix:
+        java_version: ['11', '21']
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/ci
+        with:
+          java_version: ${{ strategy.matrix.java_version }}

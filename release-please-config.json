@@ -1,0 +1,15 @@
+{
+  "bootstrap-sha": "0d71fd1508911c10b9944f661c9e109a7dc1e23c",
+  "packages": {
+    ".": {
+      "release-type": "simple",
+      "bump-minor-pre-major": true,
+      "versioning": "default",
+      "include-v-in-tag": false,
+      "include-component-in-tag": false,
+      "extra-files": [
+        "src/LaunchDarkly.OpenFeature.ServerProvider/LaunchDarkly.OpenFeature.ServerProvider.csproj"
+      ]
+    }
+  }
+}
