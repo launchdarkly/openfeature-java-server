@@ -21,4 +21,4 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/ci
         with:
-          java_version: ${{ strategy.matrix.java_version }}
+          java_version: ${{ matrix.java_version }}
