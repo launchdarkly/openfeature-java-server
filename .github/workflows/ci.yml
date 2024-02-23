@@ -1,6 +1,5 @@
 name: Build and Test
 on:
-  pull_request_target:
   workflow_dispatch:
   push:
     branches: [ 'main' ]
