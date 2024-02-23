@@ -1,5 +1,5 @@
 {
-  "bootstrap-sha": "0d71fd1508911c10b9944f661c9e109a7dc1e23c",
+  "bootstrap-sha": "86eb1e2d1b47f80ac1016f06c6edd868d2fff49b",
   "packages": {
     ".": {
       "release-type": "simple",
@@ -8,7 +8,7 @@
       "include-v-in-tag": false,
       "include-component-in-tag": false,
       "extra-files": [
-        "src/LaunchDarkly.OpenFeature.ServerProvider/LaunchDarkly.OpenFeature.ServerProvider.csproj"
+        "gradle.properties"
       ]
     }
   }
