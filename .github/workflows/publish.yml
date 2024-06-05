@@ -43,6 +43,7 @@ jobs:
         uses: ./.github/actions/ci
         with:
           run_tests: ${{ inputs.run_tests }}
+          java_version: '11'
 
       - uses: launchdarkly/gh-actions/actions/release-secrets@release-secrets-v1.1.0
         name: Get secrets
