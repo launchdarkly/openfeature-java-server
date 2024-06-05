@@ -14,7 +14,7 @@ else
         }
     else
         echo "RELEASE"
-        ./gradlew publishToSonatype closeAndReleaseRepository -Psigning.keyId="${SIGNING_KEY_ID}" -Psigning.password="${SIGNING_KEY_PASSPHRASE}" -Psigning.secretKeyRingFile="${SIGNING_SECRET_KEY_RING_FILE}" -PsonatypeUsername="${SONATYPE_USER_NAME}" -PsonatypePassword="${SONATYPE_PASSWORD}" || {
+        ./gradlew publishToSonatype closeAndReleaseSonatypeStagingRepository -Psigning.keyId="${SIGNING_KEY_ID}" -Psigning.password="${SIGNING_KEY_PASSPHRASE}" -Psigning.secretKeyRingFile="${SIGNING_SECRET_KEY_RING_FILE}" -PsonatypeUsername="${SONATYPE_USER_NAME}" -PsonatypePassword="${SONATYPE_PASSWORD}" || {
             echo "Gradle publish/release failed" >&2
             exit 1
         }
