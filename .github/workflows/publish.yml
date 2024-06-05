@@ -64,5 +64,3 @@ jobs:
           code_signing_keyring: 'code-signing-keyring.gpg'
           sonatype_username: ${{ env.SONATYPE_USER_NAME }}
           sonatype_password: ${{ env.SONATYPE_PASSWORD }}
-          aws_role: ${{ vars.AWS_ROLE_ARN }}
-          token: ${{ secrets.GITHUB_TOKEN }}
