@@ -13,7 +13,6 @@ import dev.openfeature.sdk.*;
 import java.io.IOException;
 import java.time.temporal.ChronoUnit;
 import java.util.Collections;
-import java.util.concurrent.TimeoutException;
 
 /**
  * An OpenFeature {@link FeatureProvider} which enables the use of the LaunchDarkly Server-Side SDK for Java
