@@ -63,6 +63,10 @@ class EvaluationContextConverter {
         return BuildSingleContext(evaluationContext.asMap(), finalKind, targetingKey);
     }
 
+    private boolean isNullOrEmpty(String value) {
+        return value == null || value.isEmpty();
+    }
+
     /**
      * Get and validate a targeting key.
      *
@@ -74,7 +78,7 @@ class EvaluationContextConverter {
         // Currently the targeting key will always have a value, but it can be empty.
         // So we want to treat an empty string as a not defined one. Later it could
         // become null, so we will need to check that.
-        if (!Objects.equals(targetingKey, "") && keyAsValue != null && keyAsValue.isString()) {
+        if (!isNullOrEmpty(targetingKey) && keyAsValue != null && keyAsValue.isString()) {
             // There is both a targeting key and a key. It will work, but probably
             // is not intentional.
             logger.warn("EvaluationContext contained both a 'key' and 'targetingKey'.");
@@ -87,10 +91,10 @@ class EvaluationContextConverter {
 
         if (keyAsValue != null && keyAsValue.isString()) {
             // Targeting key takes precedence over key, because targeting key is in the spec.
-            targetingKey = !Objects.equals(targetingKey, "") ? targetingKey : keyAsValue.asString();
+            targetingKey = !isNullOrEmpty(targetingKey) ? targetingKey : keyAsValue.asString();
         }
 
-        if (targetingKey == null || targetingKey.isEmpty()) {
+        if (isNullOrEmpty(targetingKey)) {
             logger.error("The EvaluationContext must contain either a 'targetingKey' or a 'key' and the type " + "must be a string.");
         }
         return targetingKey;
