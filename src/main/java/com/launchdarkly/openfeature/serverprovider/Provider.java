@@ -195,8 +195,8 @@ public class Provider extends EventProvider {
             while (true) {
                 switch(state) {
                     case READY:
-                    case STALE:
                         return;
+                    case STALE:
                     case NOT_READY:
                         break;
                     case ERROR:
