@@ -151,6 +151,8 @@ public class LifeCycleTest {
         });
 
         OpenFeatureAPI.getInstance().on(ProviderEvent.PROVIDER_ERROR, (detail) -> {
+            System.out.println("GOT UNEXPECTED ERROR");
+            System.out.println(detail.getMessage());
             errorCount.getAndIncrement();
         });
 
