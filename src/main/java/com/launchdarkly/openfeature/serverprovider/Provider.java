@@ -6,6 +6,7 @@ import com.launchdarkly.sdk.LDValue;
 import com.launchdarkly.sdk.server.Components;
 import com.launchdarkly.sdk.server.LDClient;
 import com.launchdarkly.sdk.server.LDConfig;
+import com.launchdarkly.sdk.server.interfaces.DataSourceStatusProvider;
 import com.launchdarkly.sdk.server.interfaces.LDClientInterface;
 import dev.openfeature.sdk.*;
 
@@ -147,53 +148,17 @@ public class Provider extends EventProvider {
         });
         // Listen for future status changes.
         client.getDataSourceStatusProvider().addStatusListener((res) -> {
-                switch (res.getState()) {
-                    // We will not re-enter INITIALIZING, but it is here to make the switch exhaustive.
-                    case INITIALIZING: {
-                    }
-                    break;
-                    case INTERRUPTED: {
-                        synchronized (stateLock) {
-                            state = ProviderState.STALE;
-                        }
-
-                        var message = res.getLastError() != null ? res.getLastError().getMessage() : "encountered an unknown error";
-                        emitProviderStale(ProviderEventDetails.builder().message(message).build());
-                    }
-                    break;
-                    case VALID: {
-                        boolean emit = false;
-                        synchronized (stateLock) {
-                            // If we are ready, then we don't want to emit it again. Other conditions we may be updating the
-                            // reason we are stale or interrupted, so we want to emit an event each time.
-                            if (state != ProviderState.READY) {
-                                state = ProviderState.READY;
-                                emit = true;
-                            }
-                        }
-                        if(emit) {
-                            emitProviderReady(ProviderEventDetails.builder().build());
-                        }
-                    }
-                    break;
-                    case OFF: {
-                        synchronized (stateLock) {
-                            // Currently there is not a shutdown state.
-                            // Our client/provider cannot be restarted, so we just go to error.
-                            state = ProviderState.ERROR;
-                        }
-                        emitProviderError(ProviderEventDetails.builder().message("Provider shutdown").build());
-                    }
-                    stateLock.notify();
-                }
+            handleDataSourceStatus(res);
         });
+
+        handleDataSourceStatus(client.getDataSourceStatusProvider().getStatus());
         if (state == ProviderState.READY) {
             return;
         }
 
         synchronized (stateLock) {
             while (true) {
-                switch(state) {
+                switch (state) {
                     case READY:
                         return;
                     case STALE:
@@ -207,6 +172,50 @@ public class Provider extends EventProvider {
                 // that it will not wait indefinitely at this point even if status has changed.
                 stateLock.wait(1000, 0);
             }
+        }
+    }
+
+    private void handleDataSourceStatus(DataSourceStatusProvider.Status res) {
+        switch (res.getState()) {
+            // We will not re-enter INITIALIZING, but it is here to make the switch exhaustive.
+            case INITIALIZING: {
+            }
+            break;
+            case INTERRUPTED: {
+                setState(ProviderState.STALE);
+
+                var message = res.getLastError() != null ? res.getLastError().getMessage() : "encountered an unknown error";
+                emitProviderStale(ProviderEventDetails.builder().message(message).build());
+            }
+            break;
+            case VALID: {
+                boolean emit = false;
+                synchronized (stateLock) {
+                    // If we are ready, then we don't want to emit it again. Other conditions we may be updating the
+                    // reason we are stale or interrupted, so we want to emit an event each time.
+                    if (state != ProviderState.READY) {
+                        emit = true;
+                        setState(ProviderState.READY);
+                    }
+                }
+                if (emit) {
+                    emitProviderReady(ProviderEventDetails.builder().build());
+                }
+            }
+            break;
+            case OFF: {
+                // Currently there is not a shutdown state.
+                // Our client/provider cannot be restarted, so we just go to error.
+                setState(ProviderState.ERROR);
+                emitProviderError(ProviderEventDetails.builder().message("Provider shutdown").build());
+            }
+        }
+    }
+
+    private void setState(ProviderState state) {
+        synchronized (stateLock) {
+            this.state = state;
+            stateLock.notifyAll();
         }
     }
 
