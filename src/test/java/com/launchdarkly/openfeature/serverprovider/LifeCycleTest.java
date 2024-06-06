@@ -179,7 +179,6 @@ public class LifeCycleTest {
             readyCount.getAndIncrement();
         });
 
-
         OpenFeatureAPI.getInstance().setProviderAndWait(provider);
 
         OpenFeatureAPI.getInstance().shutdown();
@@ -203,7 +202,6 @@ public class LifeCycleTest {
         OpenFeatureAPI.getInstance().on(ProviderEvent.PROVIDER_ERROR, (detail) -> {
             errorCount.getAndIncrement();
         });
-
 
         GeneralError error = null;
         try {
