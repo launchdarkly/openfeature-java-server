@@ -6,12 +6,10 @@ import com.launchdarkly.sdk.LDValue;
 import com.launchdarkly.sdk.server.Components;
 import com.launchdarkly.sdk.server.LDClient;
 import com.launchdarkly.sdk.server.LDConfig;
-import com.launchdarkly.sdk.server.interfaces.DataSourceStatusProvider;
 import com.launchdarkly.sdk.server.interfaces.LDClientInterface;
 import dev.openfeature.sdk.*;
 
 import java.io.IOException;
-import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 
 /**
@@ -47,6 +45,8 @@ public class Provider extends EventProvider {
     private final LDClientInterface client;
 
     private ProviderState state = ProviderState.NOT_READY;
+
+    private final Object stateLock = new Object();
 
     /**
      * Create a provider with the specified SDK and default configuration.
@@ -128,7 +128,9 @@ public class Provider extends EventProvider {
 
     @Override
     public ProviderState getState() {
-        return state;
+        synchronized (state) {
+            return state;
+        }
     }
 
     @Override
@@ -145,44 +147,66 @@ public class Provider extends EventProvider {
         });
         // Listen for future status changes.
         client.getDataSourceStatusProvider().addStatusListener((res) -> {
-            switch (res.getState()) {
-                // We will not re-enter INITIALIZING, but it is here to make the switch exhaustive.
-                case INITIALIZING: {
-                }
-                break;
-                case INTERRUPTED: {
-                    state = ProviderState.STALE;
-                    var message = res.getLastError() != null ? res.getLastError().getMessage() : "encountered an unknown error";
-                    emitProviderStale(ProviderEventDetails.builder().message(message).build());
-                }
-                break;
-                case VALID: {
-                    // If we are ready, then we don't want to emit it again. Other conditions we may be updating the
-                    // reason we are stale or interrupted, so we want to emit an event each time.
-                    if (state != ProviderState.READY) {
-                        state = ProviderState.READY;
-                        emitProviderReady(ProviderEventDetails.builder().build());
+                switch (res.getState()) {
+                    // We will not re-enter INITIALIZING, but it is here to make the switch exhaustive.
+                    case INITIALIZING: {
                     }
+                    break;
+                    case INTERRUPTED: {
+                        synchronized (stateLock) {
+                            state = ProviderState.STALE;
+                        }
+
+                        var message = res.getLastError() != null ? res.getLastError().getMessage() : "encountered an unknown error";
+                        emitProviderStale(ProviderEventDetails.builder().message(message).build());
+                    }
+                    break;
+                    case VALID: {
+                        boolean emit = false;
+                        synchronized (stateLock) {
+                            // If we are ready, then we don't want to emit it again. Other conditions we may be updating the
+                            // reason we are stale or interrupted, so we want to emit an event each time.
+                            if (state != ProviderState.READY) {
+                                state = ProviderState.READY;
+                                emit = true;
+                            }
+                        }
+                        if(emit) {
+                            emitProviderReady(ProviderEventDetails.builder().build());
+                        }
+                    }
+                    break;
+                    case OFF: {
+                        synchronized (stateLock) {
+                            // Currently there is not a shutdown state.
+                            // Our client/provider cannot be restarted, so we just go to error.
+                            state = ProviderState.ERROR;
+                        }
+                        emitProviderError(ProviderEventDetails.builder().message("Provider shutdown").build());
+                    }
+                    stateLock.notify();
                 }
-                break;
-                case OFF: {
-                    // Currently there is not a shutdown state.
-                    // Our client/provider cannot be restarted, so we just go to error.
-                    state = ProviderState.ERROR;
-                    emitProviderError(ProviderEventDetails.builder().message("Provider shutdown").build());
-                }
-            }
         });
         if (state == ProviderState.READY) {
             return;
         }
 
-        boolean initialized = client.getDataSourceStatusProvider().waitFor(DataSourceStatusProvider.State.VALID,
-            ChronoUnit.FOREVER.getDuration());
+        synchronized (stateLock) {
+            while (true) {
+                switch(state) {
+                    case READY:
+                    case STALE:
+                        return;
+                    case NOT_READY:
+                        break;
+                    case ERROR:
+                        throw new RuntimeException("Failed to initialize LaunchDarkly client.");
+                }
 
-        if (!initialized) {
-            // Here we throw an exception for the OpenFeature SDK, which will handle emitting an event.
-            throw new RuntimeException("Failed to initialize LaunchDarkly client.");
+                // The status should eventually change calling notify, but the timeout here is an extra guard
+                // that it will not wait indefinitely at this point even if status has changed.
+                stateLock.wait(1000, 0);
+            }
         }
     }
 
