@@ -7,7 +7,6 @@ import com.launchdarkly.sdk.server.subsystems.ClientContext;
 import com.launchdarkly.sdk.server.subsystems.ComponentConfigurer;
 import com.launchdarkly.sdk.server.subsystems.DataSource;
 import com.launchdarkly.sdk.server.subsystems.DataSourceUpdateSink;
-import com.launchdarkly.sdk.server.subsystems.DataStoreTypes;
 import dev.openfeature.sdk.ImmutableContext;
 import dev.openfeature.sdk.OpenFeatureAPI;
 import dev.openfeature.sdk.ProviderEvent;
@@ -41,11 +40,6 @@ class DelayedDataSource implements DataSource {
         startDelay = delay;
         willError = error;
         this.sink = sink;
-    }
-
-    private static DataStoreTypes.SerializedItemDescriptor toSerialized(DataStoreTypes.DataKind kind, DataStoreTypes.ItemDescriptor item) {
-        boolean isDeleted = item.getItem() == null;
-        return new DataStoreTypes.SerializedItemDescriptor(item.getVersion(), isDeleted, kind.serialize(item));
     }
 
     public Future<Void> start() {
