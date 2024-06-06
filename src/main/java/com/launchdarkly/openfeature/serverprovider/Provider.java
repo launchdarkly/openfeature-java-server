@@ -12,6 +12,8 @@ import dev.openfeature.sdk.*;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
 
 /**
  * An OpenFeature {@link FeatureProvider} which enables the use of the LaunchDarkly Server-Side SDK for Java
@@ -142,40 +144,30 @@ public class Provider extends EventProvider {
             state = ProviderState.READY;
         }
 
+        var completer = new CompletableFuture<Boolean>();
+
         client.getFlagTracker().addFlagChangeListener(detail -> {
             emitProviderConfigurationChanged(
                 ProviderEventDetails.builder().flagsChanged(Collections.singletonList(detail.getKey())).build());
         });
         // Listen for future status changes.
         client.getDataSourceStatusProvider().addStatusListener((res) -> {
-            handleDataSourceStatus(res);
+            handleDataSourceStatus(res, completer);
         });
 
-        handleDataSourceStatus(client.getDataSourceStatusProvider().getStatus());
-        if (state == ProviderState.READY) {
+        if(state == ProviderState.READY) {
             return;
         }
 
-        synchronized (stateLock) {
-            while (true) {
-                switch (state) {
-                    case READY:
-                        return;
-                    case STALE:
-                    case NOT_READY:
-                        break;
-                    case ERROR:
-                        throw new RuntimeException("Failed to initialize LaunchDarkly client.");
-                }
+        handleDataSourceStatus(client.getDataSourceStatusProvider().getStatus(), completer);
+        var successfullyInitialized = completer.get();
 
-                // The status should eventually change calling notify, but the timeout here is an extra guard
-                // that it will not wait indefinitely at this point even if status has changed.
-                stateLock.wait(1000, 0);
-            }
+        if(!successfullyInitialized) {
+            throw new RuntimeException("Failed to initialize LaunchDarkly client.");
         }
     }
 
-    private void handleDataSourceStatus(DataSourceStatusProvider.Status res) {
+    private void handleDataSourceStatus(DataSourceStatusProvider.Status res, CompletableFuture<Boolean> completer) {
         switch (res.getState()) {
             // We will not re-enter INITIALIZING, but it is here to make the switch exhaustive.
             case INITIALIZING: {
@@ -198,7 +190,9 @@ public class Provider extends EventProvider {
                         setState(ProviderState.READY);
                     }
                 }
+
                 if (emit) {
+                    completer.complete(true);
                     emitProviderReady(ProviderEventDetails.builder().build());
                 }
             }
@@ -207,6 +201,7 @@ public class Provider extends EventProvider {
                 // Currently there is not a shutdown state.
                 // Our client/provider cannot be restarted, so we just go to error.
                 setState(ProviderState.ERROR);
+                completer.complete(false);
                 emitProviderError(ProviderEventDetails.builder().message("Provider shutdown").build());
             }
         }
@@ -215,7 +210,6 @@ public class Provider extends EventProvider {
     private void setState(ProviderState state) {
         synchronized (stateLock) {
             this.state = state;
-            stateLock.notifyAll();
         }
     }
 
