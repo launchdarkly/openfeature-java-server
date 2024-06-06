@@ -18,10 +18,14 @@ import java.io.IOException;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -134,16 +138,18 @@ public class LifeCycleTest {
     }
 
     @Test
-    public void itEmitsReadyEvents() {
+    public void itEmitsReadyEvents() throws ExecutionException, InterruptedException, TimeoutException {
         var provider = new Provider("fake-key", new LDConfig.Builder()
             .offline(true).build());
 
         var readyCount = new AtomicInteger();
         var errorCount = new AtomicInteger();
         var staleCount = new AtomicInteger();
+        CompletableFuture<Boolean> gotReadyEvent = new CompletableFuture<>();
 
         OpenFeatureAPI.getInstance().on(ProviderEvent.PROVIDER_READY, (detail) -> {
             readyCount.getAndIncrement();
+            gotReadyEvent.complete(true);
         });
 
         OpenFeatureAPI.getInstance().on(ProviderEvent.PROVIDER_STALE, (detail) -> {
@@ -151,18 +157,17 @@ public class LifeCycleTest {
         });
 
         OpenFeatureAPI.getInstance().on(ProviderEvent.PROVIDER_ERROR, (detail) -> {
-            System.out.println("GOT UNEXPECTED ERROR");
-            System.out.println(detail.getMessage());
             errorCount.getAndIncrement();
         });
 
         OpenFeatureAPI.getInstance().setProviderAndWait(provider);
 
-        OpenFeatureAPI.getInstance().shutdown();
-
+        assertTrue(gotReadyEvent.get(1000, TimeUnit.MILLISECONDS));
         assertEquals(1, readyCount.get());
         assertEquals(0, staleCount.get());
         assertEquals(0, errorCount.get());
+
+        OpenFeatureAPI.getInstance().shutdown();
     }
 
     @Test
@@ -199,10 +204,10 @@ public class LifeCycleTest {
         var provider = new Provider("fake-key", config);
         assertEquals(ProviderState.NOT_READY, provider.getState());
 
-        var errorCount = new AtomicInteger();
+        CompletableFuture<Boolean> gotErrorEvent = new CompletableFuture<>();
 
         OpenFeatureAPI.getInstance().on(ProviderEvent.PROVIDER_ERROR, (detail) -> {
-            errorCount.getAndIncrement();
+            gotErrorEvent.complete(true);
         });
 
         GeneralError error = null;
@@ -215,7 +220,8 @@ public class LifeCycleTest {
         assertNotNull(error);
 
         assertEquals(ProviderState.ERROR, provider.getState());
-        assertTrue(errorCount.get() >= 1);
+
+        assertTrue(gotErrorEvent.get(1000, TimeUnit.MILLISECONDS));
 
         OpenFeatureAPI.getInstance().shutdown();
     }
