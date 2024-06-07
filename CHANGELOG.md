@@ -2,6 +2,17 @@
 
 All notable changes to the LaunchDarkly OpenFeature provider for the Server-Side SDK for Java will be documented in this file. This project adheres to [Semantic Versioning](http://semver.org).
 
+## [1.0.0](https://github.com/launchdarkly/openfeature-java-server/compare/0.2.3...1.0.0) (2024-06-07)
+
+
+### ⚠ BREAKING CHANGES
+
+* 1.0.0 release ([#29](https://github.com/launchdarkly/openfeature-java-server/issues/29))
+
+### Features
+
+* 1.0.0 release ([#29](https://github.com/launchdarkly/openfeature-java-server/issues/29)) ([bf51e20](https://github.com/launchdarkly/openfeature-java-server/commit/bf51e201dd48603a40ffcdbc72753751d70b3a5a))
+
 ## [0.2.3](https://github.com/launchdarkly/openfeature-java-server/compare/0.2.2...0.2.3) (2024-06-06)
 
 
