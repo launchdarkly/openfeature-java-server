@@ -153,10 +153,14 @@ public class LifeCycleTest {
         });
 
         OpenFeatureAPI.getInstance().on(ProviderEvent.PROVIDER_STALE, (detail) -> {
+            System.out.println("GOT UNEXPECTED PROVIDER_STALE");
+            System.out.println(detail.getMessage());
             staleCount.getAndIncrement();
         });
 
         OpenFeatureAPI.getInstance().on(ProviderEvent.PROVIDER_ERROR, (detail) -> {
+            System.out.println("GOT UNEXPECTED PROVIDER_ERROR");
+            System.out.println(detail.getMessage());
             errorCount.getAndIncrement();
         });
 
