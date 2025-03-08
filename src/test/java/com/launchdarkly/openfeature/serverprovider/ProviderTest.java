@@ -9,6 +9,9 @@ import dev.openfeature.sdk.*;
 import org.junit.jupiter.api.Test;
 
 import static org.mockito.Mockito.*;
+
+import org.awaitility.Awaitility;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 public class ProviderTest {
@@ -35,6 +38,11 @@ public class ProviderTest {
 
         OpenFeatureAPI.getInstance().setProvider(ldProvider);
 
+        Awaitility.await().forever().until(() -> OpenFeatureAPI
+            .getInstance()
+            .getClient()
+            .getBooleanValue("the-key", false, evaluationContext));
+
         assertTrue(OpenFeatureAPI
             .getInstance()
             .getClient()
@@ -60,6 +68,11 @@ public class ProviderTest {
 
         OpenFeatureAPI.getInstance().setProvider(ldProvider);
 
+        Awaitility.await().forever().until(() -> OpenFeatureAPI
+            .getInstance()
+            .getClient()
+            .getStringValue("the-key", "default", evaluationContext).equals("evaluated"));
+
         assertEquals("evaluated", OpenFeatureAPI
             .getInstance()
             .getClient()
@@ -83,6 +96,12 @@ public class ProviderTest {
             .thenReturn(EvaluationDetail.fromValue(1.0, 42, EvaluationReason.targetMatch()));
 
         OpenFeatureAPI.getInstance().setProvider(ldProvider);
+
+        Awaitility.await().forever().until(() -> OpenFeatureAPI
+            .getInstance()
+            .getClient()
+            .getDoubleValue("the-key", 0.0, evaluationContext) != 0.0);
+
         assertEquals(1.0, OpenFeatureAPI
             .getInstance()
             .getClient()
@@ -125,5 +144,80 @@ public class ProviderTest {
 
         assertEquals("84", detailed.getVariant());
         assertEquals("TARGETING_MATCH", detailed.getReason());
+    }
+
+    @Test
+    public void itCanTrackNoTrackingEventDetails() {
+        EvaluationContext evaluationContext = new ImmutableContext("user-key");
+        EvaluationContextConverter evaluationContextConverter = new EvaluationContextConverter(null);
+
+        OpenFeatureAPI.getInstance().setProvider(ldProvider);
+
+        OpenFeatureAPI
+            .getInstance()
+            .getClient().track("metric-key", evaluationContext);
+
+        verify(mockedLdClient).track(
+            "metric-key",
+            evaluationContextConverter.toLdContext(evaluationContext));
+    }
+
+    @Test
+    public void itCanTrackEmptyTrackingEventDetails() {
+        EvaluationContext evaluationContext = new ImmutableContext("user-key");
+        EvaluationContextConverter evaluationContextConverter = new EvaluationContextConverter(null);
+
+        TrackingEventDetails trackingEventDetails = new MutableTrackingEventDetails(null);
+
+        OpenFeatureAPI.getInstance().setProvider(ldProvider);
+
+        OpenFeatureAPI
+            .getInstance()
+            .getClient().track("metric-key", evaluationContext, trackingEventDetails);
+            
+        verify(mockedLdClient).track(
+            "metric-key", 
+            evaluationContextConverter.toLdContext(evaluationContext));
+    }
+
+    @Test
+    public void itCanTrackTrackingEventDetailsWithNoValue() {
+        EvaluationContext evaluationContext = new ImmutableContext("user-key");
+        EvaluationContextConverter evaluationContextConverter = new EvaluationContextConverter(null);
+        ValueConverter valueConverter = new ValueConverter(null);
+
+        TrackingEventDetails trackingEventDetails = new MutableTrackingEventDetails(null).add("currency", "USD");
+
+        OpenFeatureAPI.getInstance().setProvider(ldProvider);
+
+        OpenFeatureAPI
+            .getInstance()
+            .getClient().track("metric-key", evaluationContext, trackingEventDetails);
+
+        verify(mockedLdClient).trackData(
+            "metric-key",
+            evaluationContextConverter.toLdContext(evaluationContext), 
+            valueConverter.toLdValue(new Value(trackingEventDetails)));
+    }
+
+    @Test
+    public void itCanTrackFullTrackingEventDetails() {
+        EvaluationContext evaluationContext = new ImmutableContext("user-key");
+        EvaluationContextConverter evaluationContextConverter = new EvaluationContextConverter(null);
+        ValueConverter valueConverter = new ValueConverter(null);
+
+        TrackingEventDetails trackingEventDetails = new MutableTrackingEventDetails(99.77).add("currency", "USD");
+
+        OpenFeatureAPI.getInstance().setProvider(ldProvider);
+
+        OpenFeatureAPI
+            .getInstance()
+            .getClient().track("metric-key", evaluationContext, trackingEventDetails);
+
+        verify(mockedLdClient).trackMetric(
+            "metric-key",
+            evaluationContextConverter.toLdContext(evaluationContext),
+            valueConverter.toLdValue(new Value(trackingEventDetails)),
+            99.77);
     }
 }
