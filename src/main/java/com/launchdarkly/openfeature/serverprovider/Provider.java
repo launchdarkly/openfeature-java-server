@@ -222,6 +222,38 @@ public class Provider extends EventProvider {
         }
     }
 
+    @Override
+    public void track(String eventName, EvaluationContext ctx, TrackingEventDetails details) {
+        if (ctx == null) {
+            logger.info(
+                    "The 'track' method was called with a null EvaluationContext. " +
+                            "No 'track' event will be sent to LaunchDarkly. " +
+                            "The LaunchDarkly SDK requires a non-null EvaluationContext.");
+            return;
+        }
+
+        if (details != null) {
+            Double metricValue = null;
+            if (details.getValue().isPresent()) {
+                metricValue = (Double) details.getValue().get();
+            }
+            // Convert the Structure portion of the TrackingEventDetails into a key value
+            // map.
+            // This will not put the metricValue extracted above into the map.
+            LDValue data = valueConverter.toLdValue(new Value(details));
+
+            if (metricValue != null) {
+                client.trackMetric(eventName, evaluationContextConverter.toLdContext(ctx), data, metricValue);
+            } else if (!data.isNull() && data.size() > 0) {
+                client.trackData(eventName, evaluationContextConverter.toLdContext(ctx), data);
+            } else {
+                client.track(eventName, evaluationContextConverter.toLdContext(ctx));
+            }
+        } else {
+            client.track(eventName, evaluationContextConverter.toLdContext(ctx));
+        }
+    }
+
     /**
      * Get the LaunchDarkly client associated with this provider.
      * <p>
