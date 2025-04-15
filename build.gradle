@@ -107,7 +107,7 @@ nexusPublishing {
 dependencies {
     implementation group: 'com.launchdarkly', name: 'launchdarkly-java-server-sdk', version: '[7.1.0, 8.0.0)'
 
-    implementation 'dev.openfeature:sdk:[1.14.0,2.0.0)'
+    implementation 'dev.openfeature:sdk:[1.13.0,2.0.0)'
 
     // Use JUnit test framework
     testImplementation(platform('org.junit:junit-bom:5.10.0'))
