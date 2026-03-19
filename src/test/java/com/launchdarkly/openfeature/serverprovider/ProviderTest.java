@@ -128,6 +128,13 @@ public class ProviderTest {
             .thenReturn(evaluationDetail);
 
         OpenFeatureAPI.getInstance().setProvider(ldProvider);
+
+        Awaitility.await().forever().until(() -> {
+            Value val = OpenFeatureAPI.getInstance().getClient()
+                .getObjectValue("the-key", new Value(), evaluationContext);
+            return val != null && val.asStructure() != null;
+        });
+
         Value ofValue = OpenFeatureAPI
             .getInstance()
             .getClient()
