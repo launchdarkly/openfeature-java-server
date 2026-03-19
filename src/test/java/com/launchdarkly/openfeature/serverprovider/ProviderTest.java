@@ -12,7 +12,15 @@ import static org.mockito.Mockito.*;
 
 import org.awaitility.Awaitility;
 
+import java.time.Duration;
+
 import static org.junit.jupiter.api.Assertions.*;
+
+/**
+ * Timeout for Awaitility waits. Provider initialization should complete quickly
+ * since these tests use a mock client, but we need a non-infinite bound to avoid
+ * hanging the build if a bug prevents initialization.
+ */
 
 public class ProviderTest {
     LDClientInterface mockedLdClient = mock(LDClientInterface.class);
@@ -38,7 +46,7 @@ public class ProviderTest {
 
         OpenFeatureAPI.getInstance().setProvider(ldProvider);
 
-        Awaitility.await().forever().until(() -> OpenFeatureAPI
+        Awaitility.await().atMost(Duration.ofSeconds(10)).until(() -> OpenFeatureAPI
                 .getInstance()
                 .getClient()
                 .getBooleanValue("the-key", false, evaluationContext));
@@ -68,7 +76,7 @@ public class ProviderTest {
 
         OpenFeatureAPI.getInstance().setProvider(ldProvider);
 
-        Awaitility.await().forever().until(() -> OpenFeatureAPI
+        Awaitility.await().atMost(Duration.ofSeconds(10)).until(() -> OpenFeatureAPI
                 .getInstance()
                 .getClient()
                 .getStringValue("the-key", "default", evaluationContext).equals("evaluated"));
@@ -97,7 +105,7 @@ public class ProviderTest {
 
         OpenFeatureAPI.getInstance().setProvider(ldProvider);
 
-        Awaitility.await().forever().until(() -> OpenFeatureAPI
+        Awaitility.await().atMost(Duration.ofSeconds(10)).until(() -> OpenFeatureAPI
                 .getInstance()
                 .getClient()
                 .getDoubleValue("the-key", 0.0, evaluationContext) != 0.0);
@@ -129,7 +137,7 @@ public class ProviderTest {
 
         OpenFeatureAPI.getInstance().setProvider(ldProvider);
 
-        Awaitility.await().forever().until(() -> {
+        Awaitility.await().atMost(Duration.ofSeconds(10)).until(() -> {
             Value val = OpenFeatureAPI.getInstance().getClient()
                 .getObjectValue("the-key", new Value(), evaluationContext);
             return val != null && val.asStructure() != null;
