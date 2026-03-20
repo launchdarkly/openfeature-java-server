@@ -4,18 +4,27 @@ import com.launchdarkly.sdk.EvaluationDetail;
 import com.launchdarkly.sdk.EvaluationReason;
 import com.launchdarkly.sdk.LDContext;
 import com.launchdarkly.sdk.LDValue;
+import com.launchdarkly.sdk.server.interfaces.DataSourceStatusProvider;
+import com.launchdarkly.sdk.server.interfaces.FlagTracker;
 import com.launchdarkly.sdk.server.interfaces.LDClientInterface;
 import dev.openfeature.sdk.*;
 import org.junit.jupiter.api.Test;
 
 import static org.mockito.Mockito.*;
 
-import org.awaitility.Awaitility;
-
 import static org.junit.jupiter.api.Assertions.*;
 
 public class ProviderTest {
     LDClientInterface mockedLdClient = mock(LDClientInterface.class);
+
+    {
+        when(mockedLdClient.getFlagTracker()).thenReturn(mock(FlagTracker.class));
+        DataSourceStatusProvider dsp = mock(DataSourceStatusProvider.class);
+        when(dsp.getStatus()).thenReturn(new DataSourceStatusProvider.Status(
+            DataSourceStatusProvider.State.VALID, null, null));
+        when(mockedLdClient.getDataSourceStatusProvider()).thenReturn(dsp);
+        when(mockedLdClient.isInitialized()).thenReturn(true);
+    }
 
     /**
      * This test uses the package private constructor, which means that it does not set
@@ -30,18 +39,13 @@ public class ProviderTest {
     }
 
     @Test
-    public void itCanDoABooleanEvaluation() {
+    public void itCanDoABooleanEvaluation() throws Exception {
         EvaluationContext evaluationContext = new ImmutableContext("user-key");
 
         when(mockedLdClient.boolVariationDetail("the-key", LDContext.create("user-key"), false))
                 .thenReturn(EvaluationDetail.fromValue(true, 12, EvaluationReason.fallthrough()));
 
-        OpenFeatureAPI.getInstance().setProvider(ldProvider);
-
-        Awaitility.await().forever().until(() -> OpenFeatureAPI
-                .getInstance()
-                .getClient()
-                .getBooleanValue("the-key", false, evaluationContext));
+        OpenFeatureAPI.getInstance().setProviderAndWait(ldProvider);
 
         assertTrue(OpenFeatureAPI
                 .getInstance()
@@ -59,19 +63,14 @@ public class ProviderTest {
     }
 
     @Test
-    public void itCanDoAStringEvaluation() {
+    public void itCanDoAStringEvaluation() throws Exception {
         EvaluationContext evaluationContext = new ImmutableContext("user-key");
 
         when(mockedLdClient.stringVariationDetail("the-key", LDContext.create("user-key"), "default"))
                 .thenReturn(EvaluationDetail
                         .fromValue("evaluated", 17, EvaluationReason.off()));
 
-        OpenFeatureAPI.getInstance().setProvider(ldProvider);
-
-        Awaitility.await().forever().until(() -> OpenFeatureAPI
-                .getInstance()
-                .getClient()
-                .getStringValue("the-key", "default", evaluationContext).equals("evaluated"));
+        OpenFeatureAPI.getInstance().setProviderAndWait(ldProvider);
 
         assertEquals("evaluated", OpenFeatureAPI
                 .getInstance()
@@ -89,18 +88,13 @@ public class ProviderTest {
     }
 
     @Test
-    public void itCanDoADoubleEvaluation() {
+    public void itCanDoADoubleEvaluation() throws Exception {
         EvaluationContext evaluationContext = new ImmutableContext("user-key");
 
         when(mockedLdClient.doubleVariationDetail("the-key", LDContext.create("user-key"), 0.0))
                 .thenReturn(EvaluationDetail.fromValue(1.0, 42, EvaluationReason.targetMatch()));
 
-        OpenFeatureAPI.getInstance().setProvider(ldProvider);
-
-        Awaitility.await().forever().until(() -> OpenFeatureAPI
-                .getInstance()
-                .getClient()
-                .getDoubleValue("the-key", 0.0, evaluationContext) != 0.0);
+        OpenFeatureAPI.getInstance().setProviderAndWait(ldProvider);
 
         assertEquals(1.0, OpenFeatureAPI
                 .getInstance()
@@ -118,7 +112,7 @@ public class ProviderTest {
     }
 
     @Test
-    public void itCanDoAValueEvaluation() {
+    public void itCanDoAValueEvaluation() throws Exception {
         EvaluationContext evaluationContext = new ImmutableContext("user-key");
 
         EvaluationDetail<LDValue> evaluationDetail = EvaluationDetail
@@ -127,7 +121,8 @@ public class ProviderTest {
         when(mockedLdClient.jsonValueVariationDetail("the-key", LDContext.create("user-key"), LDValue.ofNull()))
             .thenReturn(evaluationDetail);
 
-        OpenFeatureAPI.getInstance().setProvider(ldProvider);
+        OpenFeatureAPI.getInstance().setProviderAndWait(ldProvider);
+
         Value ofValue = OpenFeatureAPI
             .getInstance()
             .getClient()

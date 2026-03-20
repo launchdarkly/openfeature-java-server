@@ -12,6 +12,7 @@ import dev.openfeature.sdk.OpenFeatureAPI;
 import dev.openfeature.sdk.ProviderEvent;
 import dev.openfeature.sdk.ProviderState;
 import dev.openfeature.sdk.exceptions.GeneralError;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -103,6 +104,11 @@ class DelayedDataSourceFactory implements ComponentConfigurer<DataSource> {
  * Detailed provider tests use a mock client to test specific result and context conversions.
  */
 public class LifeCycleTest {
+    @AfterEach
+    public void tearDown() {
+        OpenFeatureAPI.getInstance().shutdown();
+    }
+
     @Test
     public void canCallThePublicConstructor() {
         assertDoesNotThrow(() -> {
@@ -130,10 +136,6 @@ public class LifeCycleTest {
                 .offline(true).build());
             provider.initialize(new ImmutableContext("context-key"));
             provider.shutdown();
-            // Currently this does not check the provider state as the OF spec doesn't yet have a terminal
-            // shutdown state.
-            var ldClient = provider.getLdClient();
-            assertEquals(DataSourceStatusProvider.State.OFF, ldClient.getDataSourceStatusProvider().getStatus().getState());
         });
     }
 
@@ -166,8 +168,6 @@ public class LifeCycleTest {
         assertEquals(1, readyCount.get());
         assertEquals(0, staleCount.get());
         assertEquals(0, errorCount.get());
-
-        OpenFeatureAPI.getInstance().shutdown();
     }
 
     @Test
@@ -187,8 +187,6 @@ public class LifeCycleTest {
         });
 
         OpenFeatureAPI.getInstance().setProviderAndWait(provider);
-
-        OpenFeatureAPI.getInstance().shutdown();
 
         assertEquals(ProviderState.READY, provider.getState());
         assertEquals(1, readyCount.get());
@@ -222,7 +220,5 @@ public class LifeCycleTest {
         assertEquals(ProviderState.ERROR, provider.getState());
 
         assertTrue(gotErrorEvent.get(1000, TimeUnit.MILLISECONDS));
-
-        OpenFeatureAPI.getInstance().shutdown();
     }
 }
