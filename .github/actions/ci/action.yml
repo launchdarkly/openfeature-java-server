@@ -36,3 +36,7 @@ runs:
       if: steps.build.outcome == 'success' && inputs.run_tests == 'true'
       shell: bash
       run: ./gradlew test
+
+    - name: Build Documentation
+      shell: bash
+      run: ./gradlew javadoc

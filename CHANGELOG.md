@@ -2,6 +2,46 @@
 
 All notable changes to the LaunchDarkly OpenFeature provider for the Server-Side SDK for Java will be documented in this file. This project adheres to [Semantic Versioning](http://semver.org).
 
+## [1.1.2](https://github.com/launchdarkly/openfeature-java-server/compare/1.1.1...1.1.2) (2026-03-20)
+
+
+### Bug Fixes
+
+* Update OpenFeature SDK dependency lower bound from 1.13.0 to 1.16.0 ([0db9fb0](https://github.com/launchdarkly/openfeature-java-server/commit/0db9fb05ef207aa7532d22129a6ba8be12d59d74))
+
+## [1.1.1](https://github.com/launchdarkly/openfeature-java-server/compare/1.1.0...1.1.1) (2025-04-15)
+
+
+### Bug Fixes
+
+* Reduce openfeature lower bound to 1.13 instead of 1.14 ([#38](https://github.com/launchdarkly/openfeature-java-server/issues/38)) ([1152e46](https://github.com/launchdarkly/openfeature-java-server/commit/1152e46b27aafee837f0cf9443bbac07966ec4b4))
+
+## [1.1.0](https://github.com/launchdarkly/openfeature-java-server/compare/1.0.1...1.1.0) (2025-04-14)
+
+
+### Features
+
+* add tracking support ([#36](https://github.com/launchdarkly/openfeature-java-server/issues/36)) ([13ad91f](https://github.com/launchdarkly/openfeature-java-server/commit/13ad91ffa2622c21fb6e84a22f152697ba3f0d8f))
+* support tracking ([fa69598](https://github.com/launchdarkly/openfeature-java-server/commit/fa695985956f295a47f7a0f9a9a91ac2352bbf93))
+
+## [1.0.1](https://github.com/launchdarkly/openfeature-java-server/compare/1.0.0...1.0.1) (2024-09-16)
+
+
+### Bug Fixes
+
+* Remove unused dependencies. ([#34](https://github.com/launchdarkly/openfeature-java-server/issues/34)) ([e6cff17](https://github.com/launchdarkly/openfeature-java-server/commit/e6cff17639fb560b1871a7be59ab8d2b7d204b0a))
+
+## [1.0.0](https://github.com/launchdarkly/openfeature-java-server/compare/0.2.3...1.0.0) (2024-06-07)
+
+
+### ⚠ BREAKING CHANGES
+
+* 1.0.0 release ([#29](https://github.com/launchdarkly/openfeature-java-server/issues/29))
+
+### Features
+
+* 1.0.0 release ([#29](https://github.com/launchdarkly/openfeature-java-server/issues/29)) ([bf51e20](https://github.com/launchdarkly/openfeature-java-server/commit/bf51e201dd48603a40ffcdbc72753751d70b3a5a))
+
 ## [0.2.3](https://github.com/launchdarkly/openfeature-java-server/compare/0.2.2...0.2.3) (2024-06-06)
 
 

@@ -35,7 +35,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       id-token: write
-      contents: read
+      contents: write # For publishing documentation.
     steps:
       - uses: actions/checkout@v4
 
@@ -64,3 +64,15 @@ jobs:
           code_signing_keyring: 'code-signing-keyring.gpg'
           sonatype_username: ${{ env.SONATYPE_USER_NAME }}
           sonatype_password: ${{ env.SONATYPE_PASSWORD }}
+
+      - uses: launchdarkly/gh-actions/actions/publish-pages@publish-pages-v1.0.1
+        name: 'Publish to Github pages'
+        if: ${{ inputs.dry_run == 'false' }}
+        with:
+          docs_path: build/docs/javadoc
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Dry Run Publish Docs
+        shell: bash
+        if: ${{ inputs.dry_run == 'true' }}
+        run: echo "Dry run. Not publishing docs."
