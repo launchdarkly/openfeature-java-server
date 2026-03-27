@@ -6,7 +6,6 @@ jobs:
   build-and-publish:
     runs-on: ubuntu-latest
     permissions:
-      id-token: read # No OIDC needed.
       contents: write # For publishing documentation.
     steps:
       - uses: actions/checkout@v4
