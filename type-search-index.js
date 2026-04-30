@@ -1,0 +1,1 @@
+typeSearchIndex = [{"l":"All Classes","url":"allclasses-index.html"},{"p":"com.launchdarkly.openfeature.serverprovider","l":"LDValueConverter"},{"p":"com.launchdarkly.openfeature.serverprovider","l":"Provider"}]
