@@ -54,7 +54,7 @@ class EvaluationDetailConverter {
     }
 
     private static <T> ProviderEvaluation<T> getProviderEvaluation(T value, EvaluationReason reason, boolean isDefault, int variationIndex) {
-        ProviderEvaluation.ProviderEvaluationBuilder<T> builder = ProviderEvaluation.<T>builder()
+        var builder = ProviderEvaluation.<T>builder()
                 .value(value)
                 .reason(KindToString(reason.getKind()));
         if (reason.getKind() == EvaluationReason.Kind.ERROR) {
