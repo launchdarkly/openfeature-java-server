@@ -14,6 +14,13 @@ import dev.openfeature.sdk.Value;
  * Converts an EvaluationDetail into an OpenFeature ResolutionDetails.
  */
 class EvaluationDetailConverter {
+    private static final String VARIATION_INDEX_KEY = "variationIndex";
+    private static final String IN_EXPERIMENT_KEY = "inExperiment";
+    private static final String RULE_INDEX_KEY = "ruleIndex";
+    private static final String RULE_ID_KEY = "ruleId";
+    private static final String PREREQUISITE_KEY_KEY = "prerequisiteKey";
+    private static final String BIG_SEGMENTS_STATUS_KEY = "bigSegmentsStatus";
+
     LDLogger logger;
     LDValueConverter ldValueConverter;
 
@@ -72,22 +79,22 @@ class EvaluationDetailConverter {
     private static ImmutableMetadata FlagMetadata(EvaluationReason reason, boolean isDefault, int variationIndex) {
         var builder = ImmutableMetadata.builder();
         if (!isDefault) {
-            builder.addInteger("variationIndex", variationIndex);
+            builder.addInteger(VARIATION_INDEX_KEY, variationIndex);
         }
         if (reason.isInExperiment()) {
-            builder.addBoolean("inExperiment", true);
+            builder.addBoolean(IN_EXPERIMENT_KEY, true);
         }
         if (reason.getKind() == EvaluationReason.Kind.RULE_MATCH) {
-            builder.addInteger("ruleIndex", reason.getRuleIndex());
+            builder.addInteger(RULE_INDEX_KEY, reason.getRuleIndex());
             if (reason.getRuleId() != null) {
-                builder.addString("ruleId", reason.getRuleId());
+                builder.addString(RULE_ID_KEY, reason.getRuleId());
             }
         }
         if (reason.getPrerequisiteKey() != null) {
-            builder.addString("prerequisiteKey", reason.getPrerequisiteKey());
+            builder.addString(PREREQUISITE_KEY_KEY, reason.getPrerequisiteKey());
         }
         if (reason.getBigSegmentsStatus() != null) {
-            builder.addString("bigSegmentsStatus", reason.getBigSegmentsStatus().name());
+            builder.addString(BIG_SEGMENTS_STATUS_KEY, reason.getBigSegmentsStatus().name());
         }
 
         return builder.build();
