@@ -155,4 +155,79 @@ public class EvaluationDetailConverterTest {
 
         assertEquals(17.0, nestedList.get(0).asDouble(), EPSILON);
     }
+
+    @Test
+    public void itIncludesTheVariationIndexInFlagMetadata() {
+        EvaluationDetail<Boolean> detail = EvaluationDetail.fromValue(
+                true, 3, EvaluationReason.fallthrough());
+
+        ImmutableMetadata metadata = evaluationDetailConverter.toEvaluationDetails(detail).getFlagMetadata();
+
+        assertEquals(3, metadata.getInteger("variationIndex"));
+        assertNull(metadata.getBoolean("inExperiment"));
+    }
+
+    @Test
+    public void itOmitsTheVariationIndexForDefaultValues() {
+        EvaluationDetail<Boolean> detail = EvaluationDetail.fromValue(
+                true, EvaluationDetail.NO_VARIATION,
+                EvaluationReason.error(EvaluationReason.ErrorKind.FLAG_NOT_FOUND));
+
+        ImmutableMetadata metadata = evaluationDetailConverter.toEvaluationDetails(detail).getFlagMetadata();
+
+        assertNull(metadata.getInteger("variationIndex"));
+    }
+
+    @Test
+    public void itIncludesExperimentationInformationInFlagMetadata() {
+        EvaluationDetail<Boolean> detail = EvaluationDetail.fromValue(
+                true, 1, EvaluationReason.fallthrough(true));
+
+        ImmutableMetadata metadata = evaluationDetailConverter.toEvaluationDetails(detail).getFlagMetadata();
+
+        assertEquals(true, metadata.getBoolean("inExperiment"));
+    }
+
+    @Test
+    public void itIncludesRuleInformationInFlagMetadata() {
+        EvaluationDetail<Boolean> detail = EvaluationDetail.fromValue(
+                true, 1, EvaluationReason.ruleMatch(4, "the-rule-id"));
+
+        ImmutableMetadata metadata = evaluationDetailConverter.toEvaluationDetails(detail).getFlagMetadata();
+
+        assertEquals(4, metadata.getInteger("ruleIndex"));
+        assertEquals("the-rule-id", metadata.getString("ruleId"));
+    }
+
+    @Test
+    public void itIncludesThePrerequisiteKeyInFlagMetadata() {
+        EvaluationDetail<Boolean> detail = EvaluationDetail.fromValue(
+                true, 0, EvaluationReason.prerequisiteFailed("the-prerequisite-key"));
+
+        ImmutableMetadata metadata = evaluationDetailConverter.toEvaluationDetails(detail).getFlagMetadata();
+
+        assertEquals("the-prerequisite-key", metadata.getString("prerequisiteKey"));
+    }
+
+    @Test
+    public void itIncludesTheBigSegmentsStatusInFlagMetadata() {
+        EvaluationDetail<Boolean> detail = EvaluationDetail.fromValue(
+                true, 0, EvaluationReason.fallthrough()
+                        .withBigSegmentsStatus(EvaluationReason.BigSegmentsStatus.STALE));
+
+        ImmutableMetadata metadata = evaluationDetailConverter.toEvaluationDetails(detail).getFlagMetadata();
+
+        assertEquals("STALE", metadata.getString("bigSegmentsStatus"));
+    }
+
+    @Test
+    public void itIncludesFlagMetadataForObjectResults() {
+        EvaluationDetail<LDValue> detail = EvaluationDetail.fromValue(
+                new ObjectBuilder().put("aKey", "aValue").build(), 2, EvaluationReason.fallthrough(true));
+
+        ImmutableMetadata metadata = evaluationDetailConverter.toEvaluationDetailsLdValue(detail).getFlagMetadata();
+
+        assertEquals(2, metadata.getInteger("variationIndex"));
+        assertEquals(true, metadata.getBoolean("inExperiment"));
+    }
 }

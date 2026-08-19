@@ -93,6 +93,20 @@ API can be used to wait until the provider is ready, or it has encountered a per
 It the provider has been shutdown, because the OpenFeature API has been shutdown, or because the provider was no longer in use by the OpenFeature API, then the underlying LaunchDarkly SDK will be closed.
 This is an important consideration if you are using the `getLdClient` method of the provider to access the underlying SDK instance.
 
+### Flag Metadata
+
+Evaluation details include flag metadata containing the parts of the LaunchDarkly evaluation reason that do not fit
+into the OpenFeature reason and error code. Each entry is only present when it applies to the evaluation.
+
+| Key | Type | Description |
+|-----|------|-------------|
+| `variationIndex` | integer | The index of the variation that was returned. Absent when the SDK returned the default value. |
+| `inExperiment` | boolean | Only present, and always `true`, when the evaluation was part of an experiment. |
+| `ruleIndex` | integer | The index of the targeting rule that matched. Only present for a `RULE_MATCH` reason. |
+| `ruleId` | string | The identifier of the targeting rule that matched. Only present for a `RULE_MATCH` reason. |
+| `prerequisiteKey` | string | The key of the prerequisite flag that failed. Only present for a `PREREQUISITE_FAILED` reason. |
+| `bigSegmentsStatus` | string | The status of the Big Segments store, when the evaluation used Big Segments. |
+
 ### Examples
 
 #### A single user context

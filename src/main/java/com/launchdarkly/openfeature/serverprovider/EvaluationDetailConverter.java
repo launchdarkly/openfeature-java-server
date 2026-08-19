@@ -5,6 +5,7 @@ import com.launchdarkly.sdk.EvaluationDetail;
 import com.launchdarkly.sdk.EvaluationReason;
 import com.launchdarkly.sdk.LDValue;
 import dev.openfeature.sdk.ErrorCode;
+import dev.openfeature.sdk.ImmutableMetadata;
 import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.Reason;
 import dev.openfeature.sdk.Value;
@@ -62,6 +63,31 @@ class EvaluationDetailConverter {
         }
         if (!isDefault) {
             builder.variant(String.valueOf(variationIndex));
+        }
+        builder.flagMetadata(FlagMetadata(reason, isDefault, variationIndex));
+
+        return builder.build();
+    }
+
+    private static ImmutableMetadata FlagMetadata(EvaluationReason reason, boolean isDefault, int variationIndex) {
+        var builder = ImmutableMetadata.builder();
+        if (!isDefault) {
+            builder.addInteger("variationIndex", variationIndex);
+        }
+        if (reason.isInExperiment()) {
+            builder.addBoolean("inExperiment", true);
+        }
+        if (reason.getKind() == EvaluationReason.Kind.RULE_MATCH) {
+            builder.addInteger("ruleIndex", reason.getRuleIndex());
+            if (reason.getRuleId() != null) {
+                builder.addString("ruleId", reason.getRuleId());
+            }
+        }
+        if (reason.getPrerequisiteKey() != null) {
+            builder.addString("prerequisiteKey", reason.getPrerequisiteKey());
+        }
+        if (reason.getBigSegmentsStatus() != null) {
+            builder.addString("bigSegmentsStatus", reason.getBigSegmentsStatus().name());
         }
 
         return builder.build();
