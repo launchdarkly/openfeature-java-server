@@ -129,6 +129,14 @@ public class Provider extends EventProvider {
         return evaluationDetailConverter.toEvaluationDetailsLdValue(detail);
     }
 
+    /**
+     * Get the state of this provider.
+     *
+     * @deprecated The OpenFeature SDK tracks provider state itself, based on initialization and the events this
+     * provider emits. Use {@link Client#getProviderState()} instead.
+     * @return the state of this provider
+     */
+    @Deprecated
     @Override
     public ProviderState getState() {
         synchronized (state) {
