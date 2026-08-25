@@ -2,6 +2,19 @@
 
 All notable changes to the LaunchDarkly OpenFeature provider for the Server-Side SDK for Java will be documented in this file. This project adheres to [Semantic Versioning](http://semver.org).
 
+## [1.2.0](https://github.com/launchdarkly/openfeature-java-server/compare/1.1.3...1.2.0) (2026-08-25)
+
+
+### Features
+
+* Deprecate the provider getState method ([#55](https://github.com/launchdarkly/openfeature-java-server/issues/55)) ([1f71ef3](https://github.com/launchdarkly/openfeature-java-server/commit/1f71ef34538f937d5e826d12d98c6f241377a974))
+* Populate OpenFeature flag metadata from the evaluation reason ([#56](https://github.com/launchdarkly/openfeature-java-server/issues/56)) ([153eaa3](https://github.com/launchdarkly/openfeature-java-server/commit/153eaa322a60f2b07ca0d994b6ba672196941e31))
+
+
+### Bug Fixes
+
+* Synchronize provider state access on the state lock ([#54](https://github.com/launchdarkly/openfeature-java-server/issues/54)) ([ebe9513](https://github.com/launchdarkly/openfeature-java-server/commit/ebe9513470bb06f9f0df53fc9b7361e9928ee843))
+
 ## [1.1.3](https://github.com/launchdarkly/openfeature-java-server/compare/1.1.2...1.1.3) (2026-06-29)
 
 
