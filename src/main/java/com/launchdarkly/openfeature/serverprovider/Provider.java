@@ -139,7 +139,7 @@ public class Provider extends EventProvider {
     @Deprecated
     @Override
     public ProviderState getState() {
-        synchronized (state) {
+        synchronized (stateLock) {
             return state;
         }
     }
@@ -149,7 +149,7 @@ public class Provider extends EventProvider {
         // If we are ready, then set the state. Don't return, because we still need to listen for future
         // changes.
         if (client.isInitialized()) {
-            state = ProviderState.READY;
+            setState(ProviderState.READY);
         }
 
         var completer = new CompletableFuture<Boolean>();
@@ -163,7 +163,7 @@ public class Provider extends EventProvider {
             handleDataSourceStatus(res, completer);
         });
 
-        if(state == ProviderState.READY) {
+        if (getState() == ProviderState.READY) {
             return;
         }
 
