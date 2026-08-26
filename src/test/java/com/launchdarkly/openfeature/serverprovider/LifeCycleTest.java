@@ -37,13 +37,19 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class DelayedDataSource implements DataSource {
     private Duration startDelay;
     private boolean willError;
+    private boolean errorAfterInitialization;
     private boolean initialized = false;
     private Object lock = new Object();
     DataSourceUpdateSink sink;
 
     DelayedDataSource(Duration delay, boolean error, DataSourceUpdateSink sink) {
+        this(delay, error, false, sink);
+    }
+
+    DelayedDataSource(Duration delay, boolean error, boolean errorAfterInitialization, DataSourceUpdateSink sink) {
         startDelay = delay;
         willError = error;
+        this.errorAfterInitialization = errorAfterInitialization;
         this.sink = sink;
     }
 
@@ -57,6 +63,14 @@ class DelayedDataSource implements DataSource {
                     sink.updateStatus(DataSourceStatusProvider.State.VALID, null);
                     synchronized (lock) {
                         initialized = true;
+                    }
+                    if (errorAfterInitialization) {
+                        sink.updateStatus(DataSourceStatusProvider.State.OFF,
+                            new DataSourceStatusProvider.ErrorInfo(
+                                DataSourceStatusProvider.ErrorKind.NETWORK_ERROR,
+                                404,
+                                "bad",
+                                LocalDateTime.now().toInstant(ZoneOffset.UTC)));
                     }
                 } else {
                     sink.updateStatus(DataSourceStatusProvider.State.OFF,
@@ -86,15 +100,25 @@ class DelayedDataSource implements DataSource {
 class DelayedDataSourceFactory implements ComponentConfigurer<DataSource> {
     private Duration startDelay;
     private boolean willError;
+    private boolean errorAfterInitialization;
 
     DelayedDataSourceFactory(Duration delay, boolean error) {
+        this(delay, error, false);
+    }
+
+    DelayedDataSourceFactory(Duration delay, boolean error, boolean errorAfterInitialization) {
         startDelay = delay;
         willError = error;
+        this.errorAfterInitialization = errorAfterInitialization;
     }
 
     @Override
     public DataSource build(ClientContext clientContext) {
-        return new DelayedDataSource(startDelay, willError, clientContext.getDataSourceUpdateSink());
+        return new DelayedDataSource(
+            startDelay,
+            willError,
+            errorAfterInitialization,
+            clientContext.getDataSourceUpdateSink());
     }
 }
 
@@ -220,5 +244,24 @@ public class LifeCycleTest {
         assertEquals(ProviderState.ERROR, provider.getState());
 
         assertTrue(gotErrorEvent.get(1000, TimeUnit.MILLISECONDS));
+    }
+
+    @Test
+    public void itIncludesTheDataSourceErrorInErrorEvents() throws Exception {
+        var config = new LDConfig.Builder()
+            .startWait(Duration.ZERO)
+            .dataSource(new DelayedDataSourceFactory(Duration.ofMillis(100), false, true))
+            .events(Components.noEvents())
+            .build();
+        var provider = new Provider("fake-key", config);
+        CompletableFuture<String> errorMessage = new CompletableFuture<>();
+
+        OpenFeatureAPI.getInstance().on(ProviderEvent.PROVIDER_ERROR, (detail) -> {
+            errorMessage.complete(detail.getMessage());
+        });
+
+        OpenFeatureAPI.getInstance().setProviderAndWait(provider);
+
+        assertEquals("bad", errorMessage.get(1000, TimeUnit.MILLISECONDS));
     }
 }

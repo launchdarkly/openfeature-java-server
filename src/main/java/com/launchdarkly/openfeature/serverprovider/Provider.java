@@ -210,7 +210,10 @@ public class Provider extends EventProvider {
                 // Our client/provider cannot be restarted, so we just go to error.
                 setState(ProviderState.ERROR);
                 completer.complete(false);
-                emitProviderError(ProviderEventDetails.builder().message("Provider shutdown").build());
+                var message = res.getLastError() != null
+                    ? res.getLastError().getMessage()
+                    : "the provider has encountered a permanent error or has been shutdown";
+                emitProviderError(ProviderEventDetails.builder().message(message).build());
             }
         }
     }
