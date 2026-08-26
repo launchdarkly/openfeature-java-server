@@ -34,11 +34,6 @@ import java.util.concurrent.TimeoutException;
  * </code></pre>
  */
 public class Provider extends EventProvider {
-    /**
-     * The Java SDK's default start wait.
-     */
-    private static final Duration DEFAULT_START_WAIT = Duration.ofSeconds(5);
-
     private static final class ProviderMetaData implements Metadata {
         @Override
         public String getName() {
@@ -68,32 +63,41 @@ public class Provider extends EventProvider {
      * @param sdkKey the SDK key for your LaunchDarkly environment
      */
     public Provider(String sdkKey) {
-        this(sdkKey, new LDConfig.Builder().build(), DEFAULT_START_WAIT);
+        this(new LDClient(sdkKey, withWrapper(new LDConfig.Builder().build())), Duration.ZERO);
     }
 
     /**
-     * Crate a provider with the specified SDK key and configuration.
+     * Create a provider with the specified SDK key and configuration.
      *
      * @param sdkKey the SDK key for your LaunchDarkly environment
-     * @param config a client configuration object
+     * @param config a client configuration object; its start wait setting is preserved, and provider initialization
+     *              waits indefinitely
      */
     public Provider(String sdkKey, LDConfig config) {
-        this(sdkKey, config, DEFAULT_START_WAIT);
+        this(new LDClient(sdkKey, withWrapper(config)), Duration.ZERO);
     }
 
     /**
-     * Create a provider with the specified SDK key, configuration, and start wait timeout.
+     * Create a provider with the specified SDK key, configuration, and start wait timeout. This configures both the
+     * LaunchDarkly SDK's start wait and the provider's initialization timeout.
      *
      * @param sdkKey the SDK key for your LaunchDarkly environment
      * @param config a client configuration object
-     * @param startWait the maximum duration to wait for initialization; zero means no timeout
+     * @param startWait the maximum duration to wait for initialization; zero means no provider-applied timeout
      */
     public Provider(String sdkKey, LDConfig config, Duration startWait) {
         this(new LDClient(sdkKey, LDConfig.Builder.fromConfig(config)
             .startWait(startWait)
             .wrapper(Components.wrapperInfo()
                 .wrapperName("open-feature-java-server")
-                .wrapperVersion(Version.SDK_VERSION)).build()), startWait);
+            .wrapperVersion(Version.SDK_VERSION)).build()), startWait);
+    }
+
+    private static LDConfig withWrapper(LDConfig config) {
+        return LDConfig.Builder.fromConfig(config)
+            .wrapper(Components.wrapperInfo()
+                .wrapperName("open-feature-java-server")
+                .wrapperVersion(Version.SDK_VERSION)).build();
     }
 
     Provider(LDClientInterface client) {

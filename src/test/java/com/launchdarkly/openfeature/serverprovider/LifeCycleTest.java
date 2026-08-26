@@ -162,6 +162,19 @@ public class LifeCycleTest {
     }
 
     @Test
+    public void twoArgumentConstructorPreservesConfigStartWait() {
+        assertTimeoutPreemptively(Duration.ofSeconds(1), () -> {
+            var config = new LDConfig.Builder()
+                .startWait(Duration.ZERO)
+                .dataSource(new NeverReadyDataSourceFactory())
+                .events(Components.noEvents())
+                .build();
+            var provider = new Provider("fake-key", config);
+            provider.shutdown();
+        });
+    }
+
+    @Test
     public void itEmitsReadyEvents() throws ExecutionException, InterruptedException, TimeoutException {
         var provider = new Provider("fake-key", new LDConfig.Builder()
             .offline(true).build());
