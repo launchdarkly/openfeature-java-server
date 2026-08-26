@@ -32,6 +32,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class DelayedDataSource implements DataSource {
@@ -95,6 +97,26 @@ class DelayedDataSourceFactory implements ComponentConfigurer<DataSource> {
     @Override
     public DataSource build(ClientContext clientContext) {
         return new DelayedDataSource(startDelay, willError, clientContext.getDataSourceUpdateSink());
+    }
+}
+
+class NeverReadyDataSource implements DataSource {
+    public Future<Void> start() {
+        return new CompletableFuture<>();
+    }
+
+    public boolean isInitialized() {
+        return false;
+    }
+
+    public void close() throws IOException {
+    }
+}
+
+class NeverReadyDataSourceFactory implements ComponentConfigurer<DataSource> {
+    @Override
+    public DataSource build(ClientContext clientContext) {
+        return new NeverReadyDataSource();
     }
 }
 
@@ -220,5 +242,37 @@ public class LifeCycleTest {
         assertEquals(ProviderState.ERROR, provider.getState());
 
         assertTrue(gotErrorEvent.get(1000, TimeUnit.MILLISECONDS));
+    }
+
+    @Test
+    public void initializationTimesOutWhenStartWaitIsPositive() {
+        assertTimeoutPreemptively(Duration.ofSeconds(1), () -> {
+            var config = new LDConfig.Builder()
+                .dataSource(new NeverReadyDataSourceFactory())
+                .events(Components.noEvents())
+                .build();
+            var provider = new Provider("fake-key", config, Duration.ofMillis(100));
+            try {
+                var error = assertThrows(RuntimeException.class,
+                    () -> provider.initialize(new ImmutableContext("context-key")));
+                assertTrue(error.getMessage().contains("Wait for initialization timed out."));
+                assertEquals(ProviderState.ERROR, provider.getState());
+            } finally {
+                provider.shutdown();
+            }
+        });
+    }
+
+    @Test
+    public void initializationWaitsIndefinitelyWhenStartWaitIsZero() throws Exception {
+        var config = new LDConfig.Builder()
+            .dataSource(new DelayedDataSourceFactory(Duration.ofMillis(200), false))
+            .events(Components.noEvents())
+            .build();
+        var provider = new Provider("fake-key", config, Duration.ZERO);
+
+        assertDoesNotThrow(() -> provider.initialize(new ImmutableContext("context-key")));
+        assertEquals(ProviderState.READY, provider.getState());
+        provider.shutdown();
     }
 }

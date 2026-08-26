@@ -11,9 +11,12 @@ import com.launchdarkly.sdk.server.interfaces.LDClientInterface;
 import dev.openfeature.sdk.*;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * An OpenFeature {@link FeatureProvider} which enables the use of the LaunchDarkly Server-Side SDK for Java
@@ -31,6 +34,11 @@ import java.util.concurrent.Future;
  * </code></pre>
  */
 public class Provider extends EventProvider {
+    /**
+     * The Java SDK's default start wait.
+     */
+    private static final Duration DEFAULT_START_WAIT = Duration.ofSeconds(5);
+
     private static final class ProviderMetaData implements Metadata {
         @Override
         public String getName() {
@@ -46,6 +54,7 @@ public class Provider extends EventProvider {
     private final EvaluationContextConverter evaluationContextConverter;
 
     private final LDClientInterface client;
+    private final Duration startWait;
 
     private ProviderState state = ProviderState.NOT_READY;
 
@@ -59,7 +68,7 @@ public class Provider extends EventProvider {
      * @param sdkKey the SDK key for your LaunchDarkly environment
      */
     public Provider(String sdkKey) {
-        this(sdkKey, new LDConfig.Builder().build());
+        this(sdkKey, new LDConfig.Builder().build(), DEFAULT_START_WAIT);
     }
 
     /**
@@ -69,14 +78,31 @@ public class Provider extends EventProvider {
      * @param config a client configuration object
      */
     public Provider(String sdkKey, LDConfig config) {
+        this(sdkKey, config, DEFAULT_START_WAIT);
+    }
+
+    /**
+     * Create a provider with the specified SDK key, configuration, and start wait timeout.
+     *
+     * @param sdkKey the SDK key for your LaunchDarkly environment
+     * @param config a client configuration object
+     * @param startWait the maximum duration to wait for initialization; zero means no timeout
+     */
+    public Provider(String sdkKey, LDConfig config, Duration startWait) {
         this(new LDClient(sdkKey, LDConfig.Builder.fromConfig(config)
+            .startWait(startWait)
             .wrapper(Components.wrapperInfo()
                 .wrapperName("open-feature-java-server")
-                .wrapperVersion(Version.SDK_VERSION)).build()));
+                .wrapperVersion(Version.SDK_VERSION)).build()), startWait);
     }
 
     Provider(LDClientInterface client) {
+        this(client, Duration.ZERO);
+    }
+
+    Provider(LDClientInterface client, Duration startWait) {
         this.client = client;
+        this.startWait = startWait;
         logger = client.getLogger();
         evaluationContextConverter = new EvaluationContextConverter(logger);
         evaluationDetailConverter = new EvaluationDetailConverter(logger);
@@ -168,7 +194,15 @@ public class Provider extends EventProvider {
         }
 
         handleDataSourceStatus(client.getDataSourceStatusProvider().getStatus(), completer);
-        var successfullyInitialized = completer.get();
+        boolean successfullyInitialized;
+        try {
+            successfullyInitialized = startWait.isZero()
+                ? completer.get()
+                : completer.get(startWait.toMillis(), TimeUnit.MILLISECONDS);
+        } catch (TimeoutException e) {
+            setState(ProviderState.ERROR);
+            throw new RuntimeException("Wait for initialization timed out.", e);
+        }
 
         if(!successfullyInitialized) {
             throw new RuntimeException("Failed to initialize LaunchDarkly client.");

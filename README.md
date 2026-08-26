@@ -85,7 +85,7 @@ There are several other attributes which have special functionality within a sin
 
 ### Initialization and Shutdown
 
-The LaunchDarkly supports Initialization and Shutdown using the OpenFeature API. The provider begins initialization as soon as it is constructed, and the underlying LaunchDarkly SDK will block execution based on the configured start wait time. If you wish to defer the blocking behavior, then you can use the `startWait` function when building the `LDConfig`.
+The LaunchDarkly supports Initialization and Shutdown using the OpenFeature API. The provider begins initialization as soon as it is constructed, and the underlying LaunchDarkly SDK will block execution based on the configured start wait time. If you wish to defer the blocking behavior, then you can use the `startWait` function when building the `LDConfig`. The `Provider(String, LDConfig, Duration)` constructor can also configure the initialization start wait; a zero duration means no timeout.
 
 OpenFeature will report when the provider is ready, and additionally the `setProviderAndWait` function of the OpenFeature
 API can be used to wait until the provider is ready, or it has encountered a permanent error.
