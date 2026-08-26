@@ -59,6 +59,8 @@ public class Provider extends EventProvider {
      * Create a provider with the specified SDK and default configuration.
      * <p>
      * If you need to specify any configuration use {@link Provider#Provider(String, LDConfig)} instead.
+     * Initialization waits indefinitely; use {@link Provider#Provider(String, LDConfig, Duration)} when a bounded wait
+     * is wanted.
      *
      * @param sdkKey the SDK key for your LaunchDarkly environment
      */
@@ -68,6 +70,8 @@ public class Provider extends EventProvider {
 
     /**
      * Create a provider with the specified SDK key and configuration.
+     * Initialization waits indefinitely; use {@link Provider#Provider(String, LDConfig, Duration)} when a bounded wait
+     * is wanted.
      *
      * @param sdkKey the SDK key for your LaunchDarkly environment
      * @param config a client configuration object; its start wait setting is preserved, and provider initialization
