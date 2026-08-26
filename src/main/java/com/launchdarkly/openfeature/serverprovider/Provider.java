@@ -86,11 +86,8 @@ public class Provider extends EventProvider {
      * @param startWait the maximum duration to wait for initialization; zero means no provider-applied timeout
      */
     public Provider(String sdkKey, LDConfig config, Duration startWait) {
-        this(new LDClient(sdkKey, LDConfig.Builder.fromConfig(config)
-            .startWait(startWait)
-            .wrapper(Components.wrapperInfo()
-                .wrapperName("open-feature-java-server")
-            .wrapperVersion(Version.SDK_VERSION)).build()), startWait);
+        this(new LDClient(sdkKey,
+            withWrapper(LDConfig.Builder.fromConfig(config).startWait(startWait).build())), startWait);
     }
 
     private static LDConfig withWrapper(LDConfig config) {
