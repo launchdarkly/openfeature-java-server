@@ -211,7 +211,7 @@ public class Provider extends EventProvider {
                 setState(ProviderState.ERROR);
                 completer.complete(false);
                 var message = res.getLastError() != null
-                    ? res.getLastError().getMessage()
+                    ? res.getLastError().toString()
                     : "the provider has encountered a permanent error or has been shutdown";
                 emitProviderError(ProviderEventDetails.builder().message(message).build());
             }
