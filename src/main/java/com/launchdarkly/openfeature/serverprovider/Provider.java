@@ -201,12 +201,9 @@ public class Provider extends EventProvider {
 
         // With a start wait the client constructor has already waited, so the data source has either become valid,
         // failed permanently, or run out of time; the outcome is whatever it is now.
-        if (!startWait.isZero()) {
-            if (!completer.getNow(false)) {
-                setState(ProviderState.ERROR);
-                throw new RuntimeException("The client did not initialize within the start wait duration.");
-            }
-            return;
+        if (!startWait.isZero() && !completer.isDone()) {
+            setState(ProviderState.ERROR);
+            throw new RuntimeException("The client did not initialize within the start wait duration.");
         }
 
         if (!completer.get()) {

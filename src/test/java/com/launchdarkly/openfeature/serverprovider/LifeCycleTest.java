@@ -298,6 +298,24 @@ public class LifeCycleTest {
     }
 
     @Test
+    public void initializationReportsPermanentFailureAfterAPositiveStartWait() {
+        assertTimeoutPreemptively(Duration.ofSeconds(1), () -> {
+            var config = new LDConfig.Builder()
+                .dataSource(new DelayedDataSourceFactory(Duration.ofMillis(100), true))
+                .events(Components.noEvents())
+                .build();
+            var provider = new Provider("fake-key", config, Duration.ofMillis(500));
+            try {
+                var error = assertThrows(RuntimeException.class,
+                    () -> provider.initialize(new ImmutableContext("context-key")));
+                assertEquals("Failed to initialize LaunchDarkly client.", error.getMessage());
+            } finally {
+                provider.shutdown();
+            }
+        });
+    }
+
+    @Test
     public void initializationWaitsIndefinitelyWhenStartWaitIsZero() throws Exception {
         var config = new LDConfig.Builder()
             .dataSource(new DelayedDataSourceFactory(Duration.ofMillis(200), false))
