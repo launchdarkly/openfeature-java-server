@@ -258,18 +258,39 @@ public class LifeCycleTest {
     }
 
     @Test
-    public void initializationTimesOutWhenStartWaitIsPositive() {
+    public void initializationFailsWithoutWaitingAgainWhenStartWaitIsPositive() {
         assertTimeoutPreemptively(Duration.ofSeconds(1), () -> {
             var config = new LDConfig.Builder()
                 .dataSource(new NeverReadyDataSourceFactory())
                 .events(Components.noEvents())
                 .build();
-            var provider = new Provider("fake-key", config, Duration.ofMillis(100));
+            var provider = new Provider("fake-key", config, Duration.ofMillis(300));
             try {
-                var error = assertThrows(RuntimeException.class,
-                    () -> provider.initialize(new ImmutableContext("context-key")));
-                assertTrue(error.getMessage().contains("Wait for initialization timed out."));
+                // The constructor consumed the start wait, so initialization must not wait a second time.
+                assertTimeoutPreemptively(Duration.ofMillis(100), () -> {
+                    var error = assertThrows(RuntimeException.class,
+                        () -> provider.initialize(new ImmutableContext("context-key")));
+                    assertTrue(error.getMessage()
+                        .contains("The client did not initialize within the start wait duration."));
+                });
                 assertEquals(ProviderState.ERROR, provider.getState());
+            } finally {
+                provider.shutdown();
+            }
+        });
+    }
+
+    @Test
+    public void initializationSucceedsWhenTheClientBecomesReadyDuringTheStartWait() {
+        assertTimeoutPreemptively(Duration.ofSeconds(1), () -> {
+            var config = new LDConfig.Builder()
+                .dataSource(new DelayedDataSourceFactory(Duration.ofMillis(100), false))
+                .events(Components.noEvents())
+                .build();
+            var provider = new Provider("fake-key", config, Duration.ofMillis(500));
+            try {
+                assertDoesNotThrow(() -> provider.initialize(new ImmutableContext("context-key")));
+                assertEquals(ProviderState.READY, provider.getState());
             } finally {
                 provider.shutdown();
             }

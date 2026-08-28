@@ -15,8 +15,6 @@ import java.time.Duration;
 import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 /**
  * An OpenFeature {@link FeatureProvider} which enables the use of the LaunchDarkly Server-Side SDK for Java
@@ -82,12 +80,13 @@ public class Provider extends EventProvider {
     }
 
     /**
-     * Create a provider with the specified SDK key, configuration, and start wait timeout. This configures both the
-     * LaunchDarkly SDK's start wait and the provider's initialization timeout.
+     * Create a provider with the specified SDK key, configuration, and start wait duration. The duration bounds the
+     * whole of initialization: the constructor blocks for up to that long, and initialization then completes with
+     * whatever the outcome was, rather than waiting again.
      *
      * @param sdkKey the SDK key for your LaunchDarkly environment
      * @param config a client configuration object
-     * @param startWait the maximum duration to wait for initialization; zero means no provider-applied timeout
+     * @param startWait the maximum duration to wait for initialization; zero means wait indefinitely
      */
     public Provider(String sdkKey, LDConfig config, Duration startWait) {
         this(new LDClient(sdkKey,
@@ -199,17 +198,18 @@ public class Provider extends EventProvider {
         }
 
         handleDataSourceStatus(client.getDataSourceStatusProvider().getStatus(), completer);
-        boolean successfullyInitialized;
-        try {
-            successfullyInitialized = startWait.isZero()
-                ? completer.get()
-                : completer.get(startWait.toMillis(), TimeUnit.MILLISECONDS);
-        } catch (TimeoutException e) {
-            setState(ProviderState.ERROR);
-            throw new RuntimeException("Wait for initialization timed out.", e);
+
+        // With a start wait the client constructor has already waited, so the data source has either become valid,
+        // failed permanently, or run out of time; the outcome is whatever it is now.
+        if (!startWait.isZero()) {
+            if (!completer.getNow(false)) {
+                setState(ProviderState.ERROR);
+                throw new RuntimeException("The client did not initialize within the start wait duration.");
+            }
+            return;
         }
 
-        if(!successfullyInitialized) {
+        if (!completer.get()) {
             throw new RuntimeException("Failed to initialize LaunchDarkly client.");
         }
     }
