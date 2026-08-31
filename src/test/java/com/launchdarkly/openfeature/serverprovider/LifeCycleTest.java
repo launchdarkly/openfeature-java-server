@@ -37,13 +37,26 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class DelayedDataSource implements DataSource {
     private Duration startDelay;
     private boolean willError;
+    private boolean errorAfterInitialization;
+    private boolean useHttpError;
     private boolean initialized = false;
     private Object lock = new Object();
     DataSourceUpdateSink sink;
 
     DelayedDataSource(Duration delay, boolean error, DataSourceUpdateSink sink) {
+        this(delay, error, false, false, sink);
+    }
+
+    DelayedDataSource(Duration delay, boolean error, boolean errorAfterInitialization, DataSourceUpdateSink sink) {
+        this(delay, error, errorAfterInitialization, false, sink);
+    }
+
+    DelayedDataSource(Duration delay, boolean error, boolean errorAfterInitialization, boolean useHttpError,
+                      DataSourceUpdateSink sink) {
         startDelay = delay;
         willError = error;
+        this.errorAfterInitialization = errorAfterInitialization;
+        this.useHttpError = useHttpError;
         this.sink = sink;
     }
 
@@ -58,19 +71,27 @@ class DelayedDataSource implements DataSource {
                     synchronized (lock) {
                         initialized = true;
                     }
+                    if (errorAfterInitialization) {
+                        sink.updateStatus(DataSourceStatusProvider.State.OFF, errorInfo());
+                    }
                 } else {
-                    sink.updateStatus(DataSourceStatusProvider.State.OFF,
-                        new DataSourceStatusProvider.ErrorInfo(
-                            DataSourceStatusProvider.ErrorKind.NETWORK_ERROR,
-                            404,
-                            "bad",
-                            LocalDateTime.now().toInstant(ZoneOffset.UTC)));
+                    sink.updateStatus(DataSourceStatusProvider.State.OFF, errorInfo());
                 }
                 future.complete(null);
             }
         }, startDelay.toMillis());
 
         return future;
+    }
+
+    private DataSourceStatusProvider.ErrorInfo errorInfo() {
+        return useHttpError
+            ? DataSourceStatusProvider.ErrorInfo.fromHttpError(401)
+            : new DataSourceStatusProvider.ErrorInfo(
+                DataSourceStatusProvider.ErrorKind.NETWORK_ERROR,
+                404,
+                "bad",
+                LocalDateTime.now().toInstant(ZoneOffset.UTC));
     }
 
     public boolean isInitialized() {
@@ -86,15 +107,32 @@ class DelayedDataSource implements DataSource {
 class DelayedDataSourceFactory implements ComponentConfigurer<DataSource> {
     private Duration startDelay;
     private boolean willError;
+    private boolean errorAfterInitialization;
+    private boolean useHttpError;
 
     DelayedDataSourceFactory(Duration delay, boolean error) {
+        this(delay, error, false);
+    }
+
+    DelayedDataSourceFactory(Duration delay, boolean error, boolean errorAfterInitialization) {
+        this(delay, error, errorAfterInitialization, false);
+    }
+
+    DelayedDataSourceFactory(Duration delay, boolean error, boolean errorAfterInitialization, boolean useHttpError) {
         startDelay = delay;
         willError = error;
+        this.errorAfterInitialization = errorAfterInitialization;
+        this.useHttpError = useHttpError;
     }
 
     @Override
     public DataSource build(ClientContext clientContext) {
-        return new DelayedDataSource(startDelay, willError, clientContext.getDataSourceUpdateSink());
+        return new DelayedDataSource(
+            startDelay,
+            willError,
+            errorAfterInitialization,
+            useHttpError,
+            clientContext.getDataSourceUpdateSink());
     }
 }
 
@@ -220,5 +258,48 @@ public class LifeCycleTest {
         assertEquals(ProviderState.ERROR, provider.getState());
 
         assertTrue(gotErrorEvent.get(1000, TimeUnit.MILLISECONDS));
+    }
+
+    @Test
+    public void itIncludesTheDataSourceErrorInErrorEvents() throws Exception {
+        var config = new LDConfig.Builder()
+            .startWait(Duration.ZERO)
+            .dataSource(new DelayedDataSourceFactory(Duration.ofMillis(100), false, true))
+            .events(Components.noEvents())
+            .build();
+        var provider = new Provider("fake-key", config);
+        CompletableFuture<String> errorMessage = new CompletableFuture<>();
+
+        OpenFeatureAPI.getInstance().on(ProviderEvent.PROVIDER_ERROR, (detail) -> {
+            errorMessage.complete(detail.getMessage());
+        });
+
+        OpenFeatureAPI.getInstance().setProviderAndWait(provider);
+
+        var message = errorMessage.get(1000, TimeUnit.MILLISECONDS);
+        assertTrue(message.contains("404"));
+        assertTrue(message.contains("bad"));
+    }
+
+    @Test
+    public void itIncludesHttpDataSourceErrorInErrorEvents() throws Exception {
+        var config = new LDConfig.Builder()
+            .startWait(Duration.ZERO)
+            .dataSource(new DelayedDataSourceFactory(Duration.ofMillis(100), false, true, true))
+            .events(Components.noEvents())
+            .build();
+        var provider = new Provider("fake-key", config);
+        CompletableFuture<String> errorMessage = new CompletableFuture<>();
+
+        OpenFeatureAPI.getInstance().on(ProviderEvent.PROVIDER_ERROR, (detail) -> {
+            errorMessage.complete(detail.getMessage());
+        });
+
+        OpenFeatureAPI.getInstance().setProviderAndWait(provider);
+
+        var message = errorMessage.get(1000, TimeUnit.MILLISECONDS);
+        assertNotNull(message);
+        assertTrue(!message.isEmpty());
+        assertTrue(message.contains("401"));
     }
 }
