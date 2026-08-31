@@ -51,7 +51,7 @@ public class Provider extends EventProvider {
 
     private final Object stateLock = new Object();
 
-    private volatile boolean initializing = false;
+    private boolean initializing = false;
 
     /**
      * Create a provider with the specified SDK and default configuration.
@@ -154,7 +154,7 @@ public class Provider extends EventProvider {
             setState(ProviderState.READY);
         }
 
-        initializing = true;
+        setInitializing(true);
         var completer = new CompletableFuture<Boolean>();
 
         client.getFlagTracker().addFlagChangeListener(detail -> {
@@ -167,7 +167,7 @@ public class Provider extends EventProvider {
         });
 
         if (getState() == ProviderState.READY) {
-            initializing = false;
+            setInitializing(false);
             return;
         }
 
@@ -176,7 +176,7 @@ public class Provider extends EventProvider {
             handleDataSourceStatus(client.getDataSourceStatusProvider().getStatus(), completer);
             successfullyInitialized = completer.get();
         } finally {
-            initializing = false;
+            setInitializing(false);
         }
 
         if(!successfullyInitialized) {
@@ -198,21 +198,22 @@ public class Provider extends EventProvider {
             }
             break;
             case VALID: {
+                boolean becameReady = false;
                 boolean emit = false;
                 synchronized (stateLock) {
                     // If we are ready, then we don't want to emit it again. Other conditions we may be updating the
                     // reason we are stale or interrupted, so we want to emit an event each time.
                     if (state != ProviderState.READY) {
-                        emit = true;
-                        setState(ProviderState.READY);
+                        becameReady = true;
+                        // The OpenFeature SDK emits its own ready event when initialization succeeds.
+                        emit = !initializing;
+                        state = ProviderState.READY;
                     }
                 }
 
-                if (emit) {
-                    // The OpenFeature SDK emits its own ready event when initialization succeeds.
-                    boolean duringInitialization = initializing;
+                if (becameReady) {
                     completer.complete(true);
-                    if (!duringInitialization) {
+                    if (emit) {
                         emitProviderReady(ProviderEventDetails.builder().build());
                     }
                 }
@@ -228,6 +229,12 @@ public class Provider extends EventProvider {
                     : "the provider has encountered a permanent error or has been shutdown";
                 emitProviderError(ProviderEventDetails.builder().message(message).build());
             }
+        }
+    }
+
+    private void setInitializing(boolean initializing) {
+        synchronized (stateLock) {
+            this.initializing = initializing;
         }
     }
 
