@@ -51,6 +51,8 @@ public class Provider extends EventProvider {
 
     private final Object stateLock = new Object();
 
+    private volatile boolean initializing = false;
+
     /**
      * Create a provider with the specified SDK and default configuration.
      * <p>
@@ -152,6 +154,7 @@ public class Provider extends EventProvider {
             setState(ProviderState.READY);
         }
 
+        initializing = true;
         var completer = new CompletableFuture<Boolean>();
 
         client.getFlagTracker().addFlagChangeListener(detail -> {
@@ -164,11 +167,17 @@ public class Provider extends EventProvider {
         });
 
         if (getState() == ProviderState.READY) {
+            initializing = false;
             return;
         }
 
-        handleDataSourceStatus(client.getDataSourceStatusProvider().getStatus(), completer);
-        var successfullyInitialized = completer.get();
+        boolean successfullyInitialized;
+        try {
+            handleDataSourceStatus(client.getDataSourceStatusProvider().getStatus(), completer);
+            successfullyInitialized = completer.get();
+        } finally {
+            initializing = false;
+        }
 
         if(!successfullyInitialized) {
             throw new RuntimeException("Failed to initialize LaunchDarkly client.");
@@ -200,8 +209,12 @@ public class Provider extends EventProvider {
                 }
 
                 if (emit) {
+                    // The OpenFeature SDK emits its own ready event when initialization succeeds.
+                    boolean duringInitialization = initializing;
                     completer.complete(true);
-                    emitProviderReady(ProviderEventDetails.builder().build());
+                    if (!duringInitialization) {
+                        emitProviderReady(ProviderEventDetails.builder().build());
+                    }
                 }
             }
             break;

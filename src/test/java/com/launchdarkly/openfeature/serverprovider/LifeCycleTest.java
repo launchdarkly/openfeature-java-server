@@ -218,9 +218,11 @@ public class LifeCycleTest {
         var provider = new Provider("fake-key", config);
         assertEquals(ProviderState.NOT_READY, provider.getState());
 
+        var readyCount = new AtomicInteger();
         CompletableFuture<Boolean> gotReadyEvent = new CompletableFuture<>();
 
         OpenFeatureAPI.getInstance().on(ProviderEvent.PROVIDER_READY, (detail) -> {
+            readyCount.getAndIncrement();
             gotReadyEvent.complete(true);
         });
 
@@ -228,6 +230,9 @@ public class LifeCycleTest {
 
         assertEquals(ProviderState.READY, provider.getState());
         assertTrue(gotReadyEvent.get(1000, TimeUnit.MILLISECONDS));
+
+        Thread.sleep(100);
+        assertEquals(1, readyCount.get());
     }
 
     @Test
