@@ -104,6 +104,29 @@ class DelayedDataSource implements DataSource {
     }
 }
 
+class ControllableDataSource implements DataSource {
+    public Future<Void> start() {
+        return new CompletableFuture<>();
+    }
+
+    public boolean isInitialized() {
+        return false;
+    }
+
+    public void close() throws IOException {
+    }
+}
+
+class ControllableDataSourceFactory implements ComponentConfigurer<DataSource> {
+    final CompletableFuture<DataSourceUpdateSink> sink = new CompletableFuture<>();
+
+    @Override
+    public DataSource build(ClientContext clientContext) {
+        sink.complete(clientContext.getDataSourceUpdateSink());
+        return new ControllableDataSource();
+    }
+}
+
 class DelayedDataSourceFactory implements ComponentConfigurer<DataSource> {
     private Duration startDelay;
     private boolean willError;
@@ -263,6 +286,54 @@ public class LifeCycleTest {
         assertEquals(ProviderState.ERROR, provider.getState());
 
         assertTrue(gotErrorEvent.get(1000, TimeUnit.MILLISECONDS));
+    }
+
+    @Test
+    public void itEmitsReadyWhenTheDataSourceRecoversFromAFailedInitialization() throws Exception {
+        var dataSourceFactory = new ControllableDataSourceFactory();
+        var config = new LDConfig.Builder()
+            .startWait(Duration.ZERO)
+            .dataSource(dataSourceFactory)
+            .events(Components.noEvents())
+            .build();
+        var provider = new Provider("fake-key", config);
+        var sink = dataSourceFactory.sink.get(1000, TimeUnit.MILLISECONDS);
+
+        var readyCount = new AtomicInteger();
+        CompletableFuture<Boolean> gotReadyEvent = new CompletableFuture<>();
+        CompletableFuture<Boolean> gotErrorEvent = new CompletableFuture<>();
+
+        OpenFeatureAPI.getInstance().on(ProviderEvent.PROVIDER_READY, (detail) -> {
+            readyCount.getAndIncrement();
+            gotReadyEvent.complete(true);
+        });
+
+        OpenFeatureAPI.getInstance().on(ProviderEvent.PROVIDER_ERROR, (detail) -> {
+            gotErrorEvent.complete(true);
+        });
+
+        sink.updateStatus(DataSourceStatusProvider.State.OFF, new DataSourceStatusProvider.ErrorInfo(
+            DataSourceStatusProvider.ErrorKind.NETWORK_ERROR,
+            404,
+            "bad",
+            LocalDateTime.now().toInstant(ZoneOffset.UTC)));
+
+        GeneralError initializationError = null;
+        try {
+            OpenFeatureAPI.getInstance().setProviderAndWait(provider);
+        } catch (GeneralError e) {
+            initializationError = e;
+        }
+
+        assertNotNull(initializationError);
+        assertTrue(gotErrorEvent.get(1000, TimeUnit.MILLISECONDS));
+
+        sink.updateStatus(DataSourceStatusProvider.State.VALID, null);
+
+        assertTrue(gotReadyEvent.get(1000, TimeUnit.MILLISECONDS));
+
+        Thread.sleep(100);
+        assertEquals(1, readyCount.get());
     }
 
     @Test
