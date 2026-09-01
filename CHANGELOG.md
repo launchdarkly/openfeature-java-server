@@ -2,6 +2,14 @@
 
 All notable changes to the LaunchDarkly OpenFeature provider for the Server-Side SDK for Java will be documented in this file. This project adheres to [Semantic Versioning](http://semver.org).
 
+## [1.2.1](https://github.com/launchdarkly/openfeature-java-server/compare/1.2.0...1.2.1) (2026-09-01)
+
+
+### Bug Fixes
+
+* Do not emit a redundant ready event during initialization ([#63](https://github.com/launchdarkly/openfeature-java-server/issues/63)) ([373eac5](https://github.com/launchdarkly/openfeature-java-server/commit/373eac5f23efec166a8d77fc777037328d6e5ab2))
+* Include the last data source error in the provider error event ([#59](https://github.com/launchdarkly/openfeature-java-server/issues/59)) ([765b4fc](https://github.com/launchdarkly/openfeature-java-server/commit/765b4fc5e489985bfa99af80e0e8641a6ac04b14))
+
 ## [1.2.0](https://github.com/launchdarkly/openfeature-java-server/compare/1.1.3...1.2.0) (2026-08-25)
 
 
