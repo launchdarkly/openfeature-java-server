@@ -107,10 +107,14 @@ There are several other attributes which have special functionality within a sin
 
 ### Initialization and Shutdown
 
-The LaunchDarkly supports Initialization and Shutdown using the OpenFeature API. The provider begins initialization as soon as it is constructed, and the underlying LaunchDarkly SDK will block execution based on the configured start wait time. If you wish to defer the blocking behavior, then you can use the `startWait` function when building the `LDConfig`. The `Provider(String, LDConfig, Duration)` constructor bounds the whole of initialization with that duration: the constructor blocks for up to that long, and `initialize` then completes immediately with whatever the outcome was, failing if the client did not become ready in time. A zero duration means the provider waits indefinitely instead. The other constructors leave the config's start wait untouched, and the provider waits indefinitely for the data source to become valid or permanently fail.
+The LaunchDarkly provider supports Initialization and Shutdown using the OpenFeature API. Initialization starts as soon as the provider is constructed: the underlying LaunchDarkly SDK is created in the provider's constructor, and it blocks there for up to its configured start wait time.
 
-OpenFeature will report when the provider is ready, and additionally the `setProviderAndWait` function of the OpenFeature
-API can be used to wait until the provider is ready, or it has encountered a permanent error.
+The `Provider(String, LDConfig, Duration)` constructor sets that start wait and bounds the whole of initialization with it. The provider's `initialize` does not wait a second time; it reports the outcome of that single wait, and fails if the client did not become ready in time. A non-zero duration is strongly recommended. A zero duration means the provider applies no deadline at all: the constructor does not block, and `initialize` waits until the data source becomes valid or fails permanently, which may be indefinitely if neither happens. The other constructors leave the start wait of the given `LDConfig` untouched and also wait indefinitely.
+
+How initialization surfaces depends on how the provider is registered with the OpenFeature API:
+
+- `setProviderAndWait` runs initialization on the calling thread, so the call blocks until the provider is ready or has permanently failed, and throws if it failed. With a zero duration this call can block indefinitely.
+- `setProvider` runs initialization on a background thread and returns immediately. A failure is reported as a `PROVIDER_ERROR` event rather than thrown, and evaluations made before the provider is ready return their default value with the `PROVIDER_NOT_READY` error code.
 
 It the provider has been shutdown, because the OpenFeature API has been shutdown, or because the provider was no longer in use by the OpenFeature API, then the underlying LaunchDarkly SDK will be closed.
 This is an important consideration if you are using the `getLdClient` method of the provider to access the underlying SDK instance.

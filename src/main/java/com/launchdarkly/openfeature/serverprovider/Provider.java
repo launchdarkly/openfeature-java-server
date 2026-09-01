@@ -59,8 +59,8 @@ public class Provider extends EventProvider {
      * Create a provider with the specified SDK and default configuration.
      * <p>
      * If you need to specify any configuration use {@link Provider#Provider(String, LDConfig)} instead.
-     * Initialization waits indefinitely; use {@link Provider#Provider(String, LDConfig, Duration)} when a bounded wait
-     * is wanted.
+     * Initialization waits indefinitely; using {@link Provider#Provider(String, LDConfig, Duration)} with a non-zero
+     * duration is strongly recommended.
      *
      * @param sdkKey the SDK key for your LaunchDarkly environment
      */
@@ -70,8 +70,8 @@ public class Provider extends EventProvider {
 
     /**
      * Create a provider with the specified SDK key and configuration.
-     * Initialization waits indefinitely; use {@link Provider#Provider(String, LDConfig, Duration)} when a bounded wait
-     * is wanted.
+     * Initialization waits indefinitely; using {@link Provider#Provider(String, LDConfig, Duration)} with a non-zero
+     * duration is strongly recommended.
      *
      * @param sdkKey the SDK key for your LaunchDarkly environment
      * @param config a client configuration object; its start wait setting is preserved, and provider initialization
@@ -82,13 +82,22 @@ public class Provider extends EventProvider {
     }
 
     /**
-     * Create a provider with the specified SDK key, configuration, and start wait duration. The duration bounds the
-     * whole of initialization: the constructor blocks for up to that long, and initialization then completes with
-     * whatever the outcome was, rather than waiting again.
+     * Create a provider with the specified SDK key, configuration, and start wait duration.
+     * <p>
+     * The duration is applied to the LaunchDarkly SDK as its start wait, and it bounds the whole of initialization:
+     * the constructor blocks for up to that long, and initialization then reports that outcome rather than waiting
+     * again. A non-zero duration is strongly recommended. A duration of zero applies no deadline: the constructor does
+     * not block, and initialization waits until the LaunchDarkly data source becomes valid or fails permanently, which
+     * may be indefinitely.
+     * <p>
+     * When the provider is registered with {@code setProviderAndWait}, initialization runs on the calling thread, so
+     * that call blocks for up to the duration and throws if the client did not become ready. When it is registered
+     * with {@code setProvider}, initialization runs in the background and a failure is reported as a
+     * {@code PROVIDER_ERROR} event instead, with evaluations before readiness returning their default value.
      *
      * @param sdkKey the SDK key for your LaunchDarkly environment
      * @param config a client configuration object
-     * @param startWait the maximum duration to wait for initialization; zero means wait indefinitely
+     * @param startWait the maximum duration to wait for initialization; zero applies no deadline
      */
     public Provider(String sdkKey, LDConfig config, Duration startWait) {
         this(new LDClient(sdkKey,
