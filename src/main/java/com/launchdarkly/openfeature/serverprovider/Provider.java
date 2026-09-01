@@ -53,6 +53,8 @@ public class Provider extends EventProvider {
 
     private final Object stateLock = new Object();
 
+    private boolean initializing = false;
+
     /**
      * Create a provider with the specified SDK and default configuration.
      * <p>
@@ -182,6 +184,7 @@ public class Provider extends EventProvider {
             setState(ProviderState.READY);
         }
 
+        setInitializing(true);
         var completer = new CompletableFuture<Boolean>();
 
         client.getFlagTracker().addFlagChangeListener(detail -> {
@@ -194,19 +197,26 @@ public class Provider extends EventProvider {
         });
 
         if (getState() == ProviderState.READY) {
+            setInitializing(false);
             return;
         }
 
-        handleDataSourceStatus(client.getDataSourceStatusProvider().getStatus(), completer);
+        boolean successfullyInitialized;
+        try {
+            handleDataSourceStatus(client.getDataSourceStatusProvider().getStatus(), completer);
 
-        // With a start wait the client constructor has already waited, so the data source has either become valid,
-        // failed permanently, or run out of time; the outcome is whatever it is now.
-        if (!startWait.isZero() && !completer.isDone()) {
-            setState(ProviderState.ERROR);
-            throw new RuntimeException("The client did not initialize within the start wait duration.");
+            // With a start wait the client constructor has already waited, so the data source has either become valid,
+            // failed permanently, or run out of time; the outcome is whatever it is now.
+            if (!startWait.isZero() && !completer.isDone()) {
+                setState(ProviderState.ERROR);
+                throw new RuntimeException("The client did not initialize within the start wait duration.");
+            }
+            successfullyInitialized = completer.get();
+        } finally {
+            setInitializing(false);
         }
 
-        if (!completer.get()) {
+        if (!successfullyInitialized) {
             throw new RuntimeException("Failed to initialize LaunchDarkly client.");
         }
     }
@@ -225,19 +235,24 @@ public class Provider extends EventProvider {
             }
             break;
             case VALID: {
+                boolean becameReady = false;
                 boolean emit = false;
                 synchronized (stateLock) {
                     // If we are ready, then we don't want to emit it again. Other conditions we may be updating the
                     // reason we are stale or interrupted, so we want to emit an event each time.
                     if (state != ProviderState.READY) {
-                        emit = true;
-                        setState(ProviderState.READY);
+                        becameReady = true;
+                        // The OpenFeature SDK emits its own ready event when initialization succeeds.
+                        emit = !initializing;
+                        state = ProviderState.READY;
                     }
                 }
 
-                if (emit) {
+                if (becameReady) {
                     completer.complete(true);
-                    emitProviderReady(ProviderEventDetails.builder().build());
+                    if (emit) {
+                        emitProviderReady(ProviderEventDetails.builder().build());
+                    }
                 }
             }
             break;
@@ -251,6 +266,12 @@ public class Provider extends EventProvider {
                     : "the provider has encountered a permanent error or has been shutdown";
                 emitProviderError(ProviderEventDetails.builder().message(message).build());
             }
+        }
+    }
+
+    private void setInitializing(boolean initializing) {
+        synchronized (stateLock) {
+            this.initializing = initializing;
         }
     }
 
