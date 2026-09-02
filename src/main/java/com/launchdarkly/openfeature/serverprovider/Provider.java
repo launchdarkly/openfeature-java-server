@@ -266,7 +266,7 @@ public class Provider extends EventProvider {
         if (details != null) {
             Double metricValue = null;
             if (details.getValue().isPresent()) {
-                metricValue = (Double) details.getValue().get();
+                metricValue = details.getValue().get().doubleValue();
             }
             // Convert the Structure portion of the TrackingEventDetails into a key value
             // map.

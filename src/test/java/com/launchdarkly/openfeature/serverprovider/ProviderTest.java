@@ -214,4 +214,25 @@ public class ProviderTest {
                 valueConverter.toLdValue(new Value(trackingEventDetails)),
                 99.77);
     }
+
+    @Test
+    public void itCanTrackAnIntegerTrackingEventValue() {
+        EvaluationContext evaluationContext = new ImmutableContext("user-key");
+        EvaluationContextConverter evaluationContextConverter = new EvaluationContextConverter(null);
+        ValueConverter valueConverter = new ValueConverter(null);
+
+        TrackingEventDetails trackingEventDetails = new MutableTrackingEventDetails(99).add("currency", "USD");
+
+        OpenFeatureAPI.getInstance().setProvider(ldProvider);
+
+        OpenFeatureAPI
+                .getInstance()
+                .getClient().track("metric-key", evaluationContext, trackingEventDetails);
+
+        verify(mockedLdClient).trackMetric(
+                "metric-key",
+                evaluationContextConverter.toLdContext(evaluationContext),
+                valueConverter.toLdValue(new Value(trackingEventDetails)),
+                99.0);
+    }
 }
