@@ -11,6 +11,7 @@ import com.launchdarkly.sdk.server.interfaces.LDClientInterface;
 import dev.openfeature.sdk.*;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
@@ -53,6 +54,8 @@ public class Provider extends EventProvider {
 
     private boolean initializing = false;
 
+    private final boolean waitIndefinitely;
+
     /**
      * Create a provider with the specified SDK and default configuration.
      * <p>
@@ -71,14 +74,42 @@ public class Provider extends EventProvider {
      * @param config a client configuration object
      */
     public Provider(String sdkKey, LDConfig config) {
-        this(new LDClient(sdkKey, LDConfig.Builder.fromConfig(config)
+        this(makeClient(sdkKey, LDConfig.Builder.fromConfig(config)), false);
+    }
+
+    /**
+     * Create a provider with the specified SDK key, configuration and start wait time.
+     * <p>
+     * The start wait time replaces the one configured with {@link LDConfig.Builder#startWait(Duration)} and bounds the
+     * whole of initialization: the LaunchDarkly client waits for up to that long while it is constructed, and
+     * {@link Provider#initialize(EvaluationContext)} then reports whether it became ready. {@link Duration#ZERO} waits
+     * nowhere, so initialization fails unless the client is already ready and the application learns when it becomes
+     * usable from provider events. A null start wait time waits indefinitely: nothing is waited for during
+     * construction, and initialization does not complete until the data source becomes valid or fails permanently.
+     *
+     * @param sdkKey the SDK key for your LaunchDarkly environment
+     * @param config a client configuration object
+     * @param startWait how long to wait for the client to become ready, or null to wait indefinitely
+     */
+    public Provider(String sdkKey, LDConfig config, Duration startWait) {
+        this(makeClient(sdkKey, LDConfig.Builder.fromConfig(config)
+            .startWait(startWait == null ? Duration.ZERO : startWait)), startWait == null);
+    }
+
+    private static LDClient makeClient(String sdkKey, LDConfig.Builder builder) {
+        return new LDClient(sdkKey, builder
             .wrapper(Components.wrapperInfo()
                 .wrapperName("open-feature-java-server")
-                .wrapperVersion(Version.SDK_VERSION)).build()));
+                .wrapperVersion(Version.SDK_VERSION)).build());
     }
 
     Provider(LDClientInterface client) {
+        this(client, true);
+    }
+
+    Provider(LDClientInterface client, boolean waitIndefinitely) {
         this.client = client;
+        this.waitIndefinitely = waitIndefinitely;
         logger = client.getLogger();
         evaluationContextConverter = new EvaluationContextConverter(logger);
         evaluationDetailConverter = new EvaluationDetailConverter(logger);
@@ -174,6 +205,9 @@ public class Provider extends EventProvider {
         boolean successfullyInitialized;
         try {
             handleDataSourceStatus(client.getDataSourceStatusProvider().getStatus(), completer);
+            if (!waitIndefinitely) {
+                completer.complete(false);
+            }
             successfullyInitialized = completer.get();
         } finally {
             setInitializing(false);
