@@ -32,6 +32,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class DelayedDataSource implements DataSource {
@@ -238,7 +239,7 @@ public class LifeCycleTest {
             .dataSource(new DelayedDataSourceFactory(Duration.ofMillis(100), false))
             .events(Components.noEvents())
             .build();
-        var provider = new Provider("fake-key", config);
+        var provider = new Provider("fake-key", config, null);
         assertEquals(ProviderState.NOT_READY, provider.getState());
 
         var readyCount = new AtomicInteger();
@@ -265,7 +266,7 @@ public class LifeCycleTest {
             .dataSource(new DelayedDataSourceFactory(Duration.ofMillis(100), true))
             .events(Components.noEvents())
             .build();
-        var provider = new Provider("fake-key", config);
+        var provider = new Provider("fake-key", config, null);
         assertEquals(ProviderState.NOT_READY, provider.getState());
 
         CompletableFuture<Boolean> gotErrorEvent = new CompletableFuture<>();
@@ -296,7 +297,7 @@ public class LifeCycleTest {
             .dataSource(dataSourceFactory)
             .events(Components.noEvents())
             .build();
-        var provider = new Provider("fake-key", config);
+        var provider = new Provider("fake-key", config, null);
         var sink = dataSourceFactory.sink.get(1000, TimeUnit.MILLISECONDS);
 
         var readyCount = new AtomicInteger();
@@ -343,7 +344,7 @@ public class LifeCycleTest {
             .dataSource(new DelayedDataSourceFactory(Duration.ofMillis(100), false, true))
             .events(Components.noEvents())
             .build();
-        var provider = new Provider("fake-key", config);
+        var provider = new Provider("fake-key", config, null);
         CompletableFuture<String> errorMessage = new CompletableFuture<>();
 
         OpenFeatureAPI.getInstance().on(ProviderEvent.PROVIDER_ERROR, (detail) -> {
@@ -364,7 +365,7 @@ public class LifeCycleTest {
             .dataSource(new DelayedDataSourceFactory(Duration.ofMillis(100), false, true, true))
             .events(Components.noEvents())
             .build();
-        var provider = new Provider("fake-key", config);
+        var provider = new Provider("fake-key", config, null);
         CompletableFuture<String> errorMessage = new CompletableFuture<>();
 
         OpenFeatureAPI.getInstance().on(ProviderEvent.PROVIDER_ERROR, (detail) -> {
@@ -377,5 +378,34 @@ public class LifeCycleTest {
         assertNotNull(message);
         assertTrue(!message.isEmpty());
         assertTrue(message.contains("401"));
+    }
+
+    @Test
+    public void itDoesNotWaitAgainWithAStartWaitTime() {
+        var config = new LDConfig.Builder()
+            .dataSource(new DelayedDataSourceFactory(Duration.ofSeconds(30), false))
+            .events(Components.noEvents())
+            .build();
+        var provider = new Provider("fake-key", config, Duration.ofMillis(50));
+
+        var started = System.currentTimeMillis();
+        assertThrows(GeneralError.class, () -> OpenFeatureAPI.getInstance().setProviderAndWait(provider));
+
+        assertTrue(System.currentTimeMillis() - started < 1000);
+        assertEquals(ProviderState.NOT_READY, provider.getState());
+    }
+
+    @Test
+    public void itDoesNotWaitWithAStartWaitTimeOfZero() {
+        var config = new LDConfig.Builder()
+            .dataSource(new DelayedDataSourceFactory(Duration.ofSeconds(30), false))
+            .events(Components.noEvents())
+            .build();
+        var provider = new Provider("fake-key", config, Duration.ZERO);
+
+        var started = System.currentTimeMillis();
+        assertThrows(GeneralError.class, () -> OpenFeatureAPI.getInstance().setProviderAndWait(provider));
+
+        assertTrue(System.currentTimeMillis() - started < 1000);
     }
 }
