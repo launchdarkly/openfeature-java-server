@@ -214,6 +214,9 @@ public class Provider extends EventProvider {
         }
 
         if(!successfullyInitialized) {
+            // The OpenFeature SDK emits its own error event when initialization fails, so the state is recorded
+            // without emitting an event of our own.
+            setState(ProviderState.ERROR);
             throw new RuntimeException("Failed to initialize LaunchDarkly client.");
         }
     }
@@ -225,44 +228,48 @@ public class Provider extends EventProvider {
             }
             break;
             case INTERRUPTED: {
-                setState(ProviderState.STALE);
-
                 var message = res.getLastError() != null ? res.getLastError().getMessage() : "encountered an unknown error";
-                emitProviderStale(ProviderEventDetails.builder().message(message).build());
+                if (updateState(ProviderState.STALE)) {
+                    emitProviderStale(ProviderEventDetails.builder().message(message).build());
+                }
             }
             break;
             case VALID: {
-                boolean becameReady = false;
-                boolean emit = false;
-                synchronized (stateLock) {
-                    // If we are ready, then we don't want to emit it again. Other conditions we may be updating the
-                    // reason we are stale or interrupted, so we want to emit an event each time.
-                    if (state != ProviderState.READY) {
-                        becameReady = true;
-                        // The OpenFeature SDK emits its own ready event when initialization succeeds.
-                        emit = !initializing;
-                        state = ProviderState.READY;
-                    }
-                }
-
-                if (becameReady) {
-                    completer.complete(true);
-                    if (emit) {
-                        emitProviderReady(ProviderEventDetails.builder().build());
-                    }
+                boolean emit = updateState(ProviderState.READY);
+                completer.complete(true);
+                if (emit) {
+                    emitProviderReady(ProviderEventDetails.builder().build());
                 }
             }
             break;
             case OFF: {
                 // Currently there is not a shutdown state.
                 // Our client/provider cannot be restarted, so we just go to error.
-                setState(ProviderState.ERROR);
+                boolean emit = updateState(ProviderState.ERROR);
                 completer.complete(false);
                 var message = res.getLastError() != null
                     ? res.getLastError().toString()
                     : "the provider has encountered a permanent error or has been shutdown";
-                emitProviderError(ProviderEventDetails.builder().message(message).build());
+                if (emit) {
+                    emitProviderError(ProviderEventDetails.builder().message(message).build());
+                }
             }
+        }
+    }
+
+    /**
+     * Record the provider state and report whether the change should be emitted.
+     * <p>
+     * A state which does not change is not emitted, and neither is the state which completes initialization, because
+     * the OpenFeature SDK emits its own event for that one.
+     */
+    private boolean updateState(ProviderState newState) {
+        synchronized (stateLock) {
+            if (state == newState) {
+                return false;
+            }
+            state = newState;
+            return !initializing;
         }
     }
 

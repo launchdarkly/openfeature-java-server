@@ -392,7 +392,7 @@ public class LifeCycleTest {
         assertThrows(GeneralError.class, () -> OpenFeatureAPI.getInstance().setProviderAndWait(provider));
 
         assertTrue(System.currentTimeMillis() - started < 1000);
-        assertEquals(ProviderState.NOT_READY, provider.getState());
+        assertEquals(ProviderState.ERROR, provider.getState());
     }
 
     @Test
