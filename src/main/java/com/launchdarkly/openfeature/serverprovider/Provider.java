@@ -227,7 +227,7 @@ public class Provider extends EventProvider {
                 var message = res.getLastError() != null
                     ? res.getLastError().toString()
                     : "the provider has encountered a permanent error or has been shutdown";
-                emitProviderError(ProviderEventDetails.builder().message(message).build());
+                emitProviderError(ProviderEventDetails.builder().message(message).errorCode(ErrorCode.GENERAL).build());
             }
         }
     }
