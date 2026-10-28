@@ -218,18 +218,22 @@ public class Provider extends EventProvider {
         boolean successfullyInitialized;
         try {
             handleDataSourceStatus(client.getDataSourceStatusProvider().getStatus(), completer);
-            if (!waitIndefinitely) {
-                completer.complete(false);
+            // Recording the failure with the state, under the lock, keeps a data source which becomes valid at the
+            // same moment from being reported as a failed initialization, or from losing its ready event.
+            synchronized (stateLock) {
+                if (!waitIndefinitely && !completer.isDone()) {
+                    completeState(ProviderState.ERROR);
+                    completer.complete(false);
+                }
             }
             successfullyInitialized = completer.get();
         } finally {
             setInitializing(false);
         }
 
-        if(!successfullyInitialized) {
-            // The OpenFeature SDK emits its own error event when initialization fails, so the state is recorded
-            // without emitting an event of our own.
-            setState(ProviderState.ERROR);
+        if (!successfullyInitialized) {
+            // The state is already recorded, and the OpenFeature SDK emits its own error event when initialization
+            // fails, so no event of our own is emitted here.
             throw new RuntimeException("Failed to initialize LaunchDarkly client.");
         }
     }
@@ -248,8 +252,11 @@ public class Provider extends EventProvider {
             }
             break;
             case VALID: {
-                boolean emit = completeState(ProviderState.READY);
-                completer.complete(true);
+                boolean emit;
+                synchronized (stateLock) {
+                    emit = completeState(ProviderState.READY);
+                    completer.complete(true);
+                }
                 if (emit) {
                     emitProviderReady(ProviderEventDetails.builder().build());
                 }
@@ -258,8 +265,11 @@ public class Provider extends EventProvider {
             case OFF: {
                 // Currently there is not a shutdown state.
                 // Our client/provider cannot be restarted, so we just go to error.
-                boolean emit = completeState(ProviderState.ERROR);
-                completer.complete(false);
+                boolean emit;
+                synchronized (stateLock) {
+                    emit = completeState(ProviderState.ERROR);
+                    completer.complete(false);
+                }
                 var message = res.getLastError() != null
                     ? res.getLastError().toString()
                     : "the provider has encountered a permanent error or has been shutdown";
