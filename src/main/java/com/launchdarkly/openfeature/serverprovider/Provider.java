@@ -12,6 +12,7 @@ import dev.openfeature.sdk.*;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
@@ -57,6 +58,12 @@ public class Provider extends EventProvider {
     private final boolean waitIndefinitely;
 
     /**
+     * A start wait time which waits indefinitely, for use with
+     * {@link Provider#Provider(String, LDConfig, Duration)}.
+     */
+    public static final Duration INFINITE_START_WAIT = ChronoUnit.FOREVER.getDuration();
+
+    /**
      * Create a provider with the specified SDK and default configuration.
      * <p>
      * If you need to specify any configuration use {@link Provider#Provider(String, LDConfig)} instead.
@@ -84,16 +91,19 @@ public class Provider extends EventProvider {
      * whole of initialization: the LaunchDarkly client waits for up to that long while it is constructed, and
      * {@link Provider#initialize(EvaluationContext)} then reports whether it became ready. {@link Duration#ZERO} waits
      * nowhere, so initialization fails unless the client is already ready and the application learns when it becomes
-     * usable from provider events. A null start wait time waits indefinitely: nothing is waited for during
-     * construction, and initialization does not complete until the data source becomes valid or fails permanently.
+     * usable from provider events. {@link Provider#INFINITE_START_WAIT} waits indefinitely: nothing is waited for
+     * during construction, and initialization does not complete until the data source becomes valid or fails
+     * permanently.
      *
      * @param sdkKey the SDK key for your LaunchDarkly environment
      * @param config a client configuration object
-     * @param startWait how long to wait for the client to become ready, or null to wait indefinitely
+     * @param startWait how long to wait for the client to become ready, or {@link Provider#INFINITE_START_WAIT} to
+     *                  wait indefinitely
      */
     public Provider(String sdkKey, LDConfig config, Duration startWait) {
         this(makeClient(sdkKey, LDConfig.Builder.fromConfig(config)
-            .startWait(startWait == null ? Duration.ZERO : startWait)), startWait == null);
+                .startWait(INFINITE_START_WAIT.equals(startWait) ? Duration.ZERO : startWait)),
+            INFINITE_START_WAIT.equals(startWait));
     }
 
     private static LDClient makeClient(String sdkKey, LDConfig.Builder builder) {

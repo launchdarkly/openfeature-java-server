@@ -239,7 +239,7 @@ public class LifeCycleTest {
             .dataSource(new DelayedDataSourceFactory(Duration.ofMillis(100), false))
             .events(Components.noEvents())
             .build();
-        var provider = new Provider("fake-key", config, null);
+        var provider = new Provider("fake-key", config, Provider.INFINITE_START_WAIT);
         assertEquals(ProviderState.NOT_READY, provider.getState());
 
         var readyCount = new AtomicInteger();
@@ -266,7 +266,7 @@ public class LifeCycleTest {
             .dataSource(new DelayedDataSourceFactory(Duration.ofMillis(100), true))
             .events(Components.noEvents())
             .build();
-        var provider = new Provider("fake-key", config, null);
+        var provider = new Provider("fake-key", config, Provider.INFINITE_START_WAIT);
         assertEquals(ProviderState.NOT_READY, provider.getState());
 
         CompletableFuture<Boolean> gotErrorEvent = new CompletableFuture<>();
@@ -297,7 +297,7 @@ public class LifeCycleTest {
             .dataSource(dataSourceFactory)
             .events(Components.noEvents())
             .build();
-        var provider = new Provider("fake-key", config, null);
+        var provider = new Provider("fake-key", config, Provider.INFINITE_START_WAIT);
         var sink = dataSourceFactory.sink.get(1000, TimeUnit.MILLISECONDS);
 
         var readyCount = new AtomicInteger();
@@ -344,7 +344,7 @@ public class LifeCycleTest {
             .dataSource(new DelayedDataSourceFactory(Duration.ofMillis(100), false, true))
             .events(Components.noEvents())
             .build();
-        var provider = new Provider("fake-key", config, null);
+        var provider = new Provider("fake-key", config, Provider.INFINITE_START_WAIT);
         CompletableFuture<String> errorMessage = new CompletableFuture<>();
 
         OpenFeatureAPI.getInstance().on(ProviderEvent.PROVIDER_ERROR, (detail) -> {
@@ -365,7 +365,7 @@ public class LifeCycleTest {
             .dataSource(new DelayedDataSourceFactory(Duration.ofMillis(100), false, true, true))
             .events(Components.noEvents())
             .build();
-        var provider = new Provider("fake-key", config, null);
+        var provider = new Provider("fake-key", config, Provider.INFINITE_START_WAIT);
         CompletableFuture<String> errorMessage = new CompletableFuture<>();
 
         OpenFeatureAPI.getInstance().on(ProviderEvent.PROVIDER_ERROR, (detail) -> {
