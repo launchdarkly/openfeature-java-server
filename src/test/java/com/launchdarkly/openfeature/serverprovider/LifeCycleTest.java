@@ -7,6 +7,7 @@ import com.launchdarkly.sdk.server.subsystems.ClientContext;
 import com.launchdarkly.sdk.server.subsystems.ComponentConfigurer;
 import com.launchdarkly.sdk.server.subsystems.DataSource;
 import com.launchdarkly.sdk.server.subsystems.DataSourceUpdateSink;
+import dev.openfeature.sdk.ErrorCode;
 import dev.openfeature.sdk.ImmutableContext;
 import dev.openfeature.sdk.OpenFeatureAPI;
 import dev.openfeature.sdk.ProviderEvent;
@@ -355,6 +356,25 @@ public class LifeCycleTest {
         var message = errorMessage.get(1000, TimeUnit.MILLISECONDS);
         assertTrue(message.contains("404"));
         assertTrue(message.contains("bad"));
+    }
+
+    @Test
+    public void itIncludesAnErrorCodeInErrorEvents() throws Exception {
+        var config = new LDConfig.Builder()
+            .startWait(Duration.ZERO)
+            .dataSource(new DelayedDataSourceFactory(Duration.ofMillis(100), false, true))
+            .events(Components.noEvents())
+            .build();
+        var provider = new Provider("fake-key", config);
+        CompletableFuture<ErrorCode> errorCode = new CompletableFuture<>();
+
+        OpenFeatureAPI.getInstance().on(ProviderEvent.PROVIDER_ERROR, (detail) -> {
+            errorCode.complete(detail.getErrorCode());
+        });
+
+        OpenFeatureAPI.getInstance().setProviderAndWait(provider);
+
+        assertEquals(ErrorCode.GENERAL, errorCode.get(1000, TimeUnit.MILLISECONDS));
     }
 
     @Test
