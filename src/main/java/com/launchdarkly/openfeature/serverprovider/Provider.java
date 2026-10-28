@@ -101,9 +101,12 @@ public class Provider extends EventProvider {
      *                  wait indefinitely
      */
     public Provider(String sdkKey, LDConfig config, Duration startWait) {
+        this(sdkKey, config, startWait, INFINITE_START_WAIT.equals(startWait));
+    }
+
+    private Provider(String sdkKey, LDConfig config, Duration startWait, boolean waitIndefinitely) {
         this(makeClient(sdkKey, LDConfig.Builder.fromConfig(config)
-                .startWait(INFINITE_START_WAIT.equals(startWait) ? Duration.ZERO : startWait)),
-            INFINITE_START_WAIT.equals(startWait));
+            .startWait(waitIndefinitely ? Duration.ZERO : startWait)), waitIndefinitely);
     }
 
     private static LDClient makeClient(String sdkKey, LDConfig.Builder builder) {
@@ -245,7 +248,7 @@ public class Provider extends EventProvider {
             }
             break;
             case VALID: {
-                boolean emit = updateState(ProviderState.READY);
+                boolean emit = completeState(ProviderState.READY);
                 completer.complete(true);
                 if (emit) {
                     emitProviderReady(ProviderEventDetails.builder().build());
@@ -255,7 +258,7 @@ public class Provider extends EventProvider {
             case OFF: {
                 // Currently there is not a shutdown state.
                 // Our client/provider cannot be restarted, so we just go to error.
-                boolean emit = updateState(ProviderState.ERROR);
+                boolean emit = completeState(ProviderState.ERROR);
                 completer.complete(false);
                 var message = res.getLastError() != null
                     ? res.getLastError().toString()
@@ -281,6 +284,22 @@ public class Provider extends EventProvider {
             }
             state = newState;
             return !initializing;
+        }
+    }
+
+    /**
+     * Record the provider state which completes initialization and report whether the change should be emitted.
+     * <p>
+     * The OpenFeature SDK emits its own event for the transition which completes initialization, so that one is not
+     * emitted here, but any state change after it is.
+     */
+    private boolean completeState(ProviderState newState) {
+        synchronized (stateLock) {
+            var changed = state != newState;
+            var wasInitializing = initializing;
+            state = newState;
+            initializing = false;
+            return changed && !wasInitializing;
         }
     }
 

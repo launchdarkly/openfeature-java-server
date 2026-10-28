@@ -366,7 +366,7 @@ public class LifeCycleTest {
             .dataSource(new DelayedDataSourceFactory(Duration.ofMillis(100), false, true))
             .events(Components.noEvents())
             .build();
-        var provider = new Provider("fake-key", config);
+        var provider = new Provider("fake-key", config, Provider.INFINITE_START_WAIT);
         CompletableFuture<ErrorCode> errorCode = new CompletableFuture<>();
 
         OpenFeatureAPI.getInstance().on(ProviderEvent.PROVIDER_ERROR, (detail) -> {
