@@ -32,7 +32,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class DelayedDataSource implements DataSource {
@@ -42,6 +44,7 @@ class DelayedDataSource implements DataSource {
     private boolean useHttpError;
     private boolean initialized = false;
     private Object lock = new Object();
+    private Timer timer;
     DataSourceUpdateSink sink;
 
     DelayedDataSource(Duration delay, boolean error, DataSourceUpdateSink sink) {
@@ -63,7 +66,7 @@ class DelayedDataSource implements DataSource {
 
     public Future<Void> start() {
         var future = new CompletableFuture<Void>();
-        var timer = new Timer();
+        timer = new Timer(true);
         timer.schedule(new TimerTask() {
             @Override
             public void run() {
@@ -102,6 +105,9 @@ class DelayedDataSource implements DataSource {
     }
 
     public void close() throws IOException {
+        if (timer != null) {
+            timer.cancel();
+        }
     }
 }
 
@@ -239,7 +245,7 @@ public class LifeCycleTest {
             .dataSource(new DelayedDataSourceFactory(Duration.ofMillis(100), false))
             .events(Components.noEvents())
             .build();
-        var provider = new Provider("fake-key", config);
+        var provider = new Provider("fake-key", config, Provider.INFINITE_START_WAIT);
         assertEquals(ProviderState.NOT_READY, provider.getState());
 
         var readyCount = new AtomicInteger();
@@ -266,7 +272,7 @@ public class LifeCycleTest {
             .dataSource(new DelayedDataSourceFactory(Duration.ofMillis(100), true))
             .events(Components.noEvents())
             .build();
-        var provider = new Provider("fake-key", config);
+        var provider = new Provider("fake-key", config, Provider.INFINITE_START_WAIT);
         assertEquals(ProviderState.NOT_READY, provider.getState());
 
         CompletableFuture<Boolean> gotErrorEvent = new CompletableFuture<>();
@@ -297,7 +303,7 @@ public class LifeCycleTest {
             .dataSource(dataSourceFactory)
             .events(Components.noEvents())
             .build();
-        var provider = new Provider("fake-key", config);
+        var provider = new Provider("fake-key", config, Provider.INFINITE_START_WAIT);
         var sink = dataSourceFactory.sink.get(1000, TimeUnit.MILLISECONDS);
 
         var readyCount = new AtomicInteger();
@@ -344,7 +350,7 @@ public class LifeCycleTest {
             .dataSource(new DelayedDataSourceFactory(Duration.ofMillis(100), false, true))
             .events(Components.noEvents())
             .build();
-        var provider = new Provider("fake-key", config);
+        var provider = new Provider("fake-key", config, Provider.INFINITE_START_WAIT);
         CompletableFuture<String> errorMessage = new CompletableFuture<>();
 
         OpenFeatureAPI.getInstance().on(ProviderEvent.PROVIDER_ERROR, (detail) -> {
@@ -365,7 +371,7 @@ public class LifeCycleTest {
             .dataSource(new DelayedDataSourceFactory(Duration.ofMillis(100), false, true))
             .events(Components.noEvents())
             .build();
-        var provider = new Provider("fake-key", config);
+        var provider = new Provider("fake-key", config, Provider.INFINITE_START_WAIT);
         CompletableFuture<ErrorCode> errorCode = new CompletableFuture<>();
 
         OpenFeatureAPI.getInstance().on(ProviderEvent.PROVIDER_ERROR, (detail) -> {
@@ -384,7 +390,7 @@ public class LifeCycleTest {
             .dataSource(new DelayedDataSourceFactory(Duration.ofMillis(100), false, true, true))
             .events(Components.noEvents())
             .build();
-        var provider = new Provider("fake-key", config);
+        var provider = new Provider("fake-key", config, Provider.INFINITE_START_WAIT);
         CompletableFuture<String> errorMessage = new CompletableFuture<>();
 
         OpenFeatureAPI.getInstance().on(ProviderEvent.PROVIDER_ERROR, (detail) -> {
@@ -397,5 +403,268 @@ public class LifeCycleTest {
         assertNotNull(message);
         assertTrue(!message.isEmpty());
         assertTrue(message.contains("401"));
+    }
+
+    @Test
+    public void itDoesNotWaitAgainWithAStartWaitTime() {
+        var config = new LDConfig.Builder()
+            .dataSource(new DelayedDataSourceFactory(Duration.ofSeconds(30), false))
+            .events(Components.noEvents())
+            .build();
+        var provider = new Provider("fake-key", config, Duration.ofMillis(50));
+
+        var started = System.currentTimeMillis();
+        assertThrows(GeneralError.class, () -> OpenFeatureAPI.getInstance().setProviderAndWait(provider));
+
+        assertTrue(System.currentTimeMillis() - started < 1000);
+        assertEquals(ProviderState.ERROR, provider.getState());
+    }
+
+    @Test
+    public void itDoesNotWaitWithAStartWaitTimeOfZero() {
+        var config = new LDConfig.Builder()
+            .dataSource(new DelayedDataSourceFactory(Duration.ofSeconds(30), false))
+            .events(Components.noEvents())
+            .build();
+        var provider = new Provider("fake-key", config, Duration.ZERO);
+
+        var started = System.currentTimeMillis();
+        assertThrows(GeneralError.class, () -> OpenFeatureAPI.getInstance().setProviderAndWait(provider));
+
+        assertTrue(System.currentTimeMillis() - started < 1000);
+    }
+
+    @Test
+    public void itBecomesReadyWithinAPositiveStartWait() throws Exception {
+        var config = new LDConfig.Builder()
+            .dataSource(new DelayedDataSourceFactory(Duration.ofMillis(50), false))
+            .events(Components.noEvents())
+            .build();
+        // A positive start wait longer than the data source takes to become valid: initialization succeeds.
+        var provider = new Provider("fake-key", config, Duration.ofSeconds(5));
+
+        var readyCount = new AtomicInteger();
+        CompletableFuture<Boolean> gotReadyEvent = new CompletableFuture<>();
+        OpenFeatureAPI.getInstance().on(ProviderEvent.PROVIDER_READY, (detail) -> {
+            readyCount.getAndIncrement();
+            gotReadyEvent.complete(true);
+        });
+
+        var started = System.currentTimeMillis();
+        OpenFeatureAPI.getInstance().setProviderAndWait(provider);
+
+        assertEquals(ProviderState.READY, provider.getState());
+        assertTrue(System.currentTimeMillis() - started < 5000);
+        assertTrue(gotReadyEvent.get(1000, TimeUnit.MILLISECONDS));
+        Thread.sleep(100);
+        assertEquals(1, readyCount.get());
+    }
+
+    @Test
+    public void itEmitsStaleThenReadyOnInterruptionAndRecovery() throws Exception {
+        var dataSourceFactory = new ControllableDataSourceFactory();
+        var config = new LDConfig.Builder()
+            .startWait(Duration.ZERO)
+            .dataSource(dataSourceFactory)
+            .events(Components.noEvents())
+            .build();
+        var provider = new Provider("fake-key", config, Provider.INFINITE_START_WAIT);
+        var sink = dataSourceFactory.sink.get(1000, TimeUnit.MILLISECONDS);
+
+        var readyCount = new AtomicInteger();
+        var staleCount = new AtomicInteger();
+        CompletableFuture<String> staleMessage = new CompletableFuture<>();
+        CompletableFuture<Boolean> recoveredReadyEvent = new CompletableFuture<>();
+
+        OpenFeatureAPI.getInstance().on(ProviderEvent.PROVIDER_READY, (detail) -> {
+            if (readyCount.incrementAndGet() == 2) {
+                recoveredReadyEvent.complete(true);
+            }
+        });
+        OpenFeatureAPI.getInstance().on(ProviderEvent.PROVIDER_STALE, (detail) -> {
+            staleCount.incrementAndGet();
+            staleMessage.complete(detail.getMessage());
+        });
+
+        // Complete initialization. The OpenFeature SDK emits the first ready event itself for the init outcome.
+        sink.updateStatus(DataSourceStatusProvider.State.VALID, null);
+        OpenFeatureAPI.getInstance().setProviderAndWait(provider);
+        assertEquals(ProviderState.READY, provider.getState());
+
+        // An interruption is reported as stale, carrying the HTTP error detail.
+        sink.updateStatus(DataSourceStatusProvider.State.INTERRUPTED,
+            DataSourceStatusProvider.ErrorInfo.fromHttpError(503));
+        var message = staleMessage.get(1000, TimeUnit.MILLISECONDS);
+        assertTrue(message.contains("503"));
+
+        // Recovery is reported as ready again.
+        sink.updateStatus(DataSourceStatusProvider.State.VALID, null);
+        assertTrue(recoveredReadyEvent.get(1000, TimeUnit.MILLISECONDS));
+
+        Thread.sleep(100);
+        assertEquals(2, readyCount.get());
+        assertEquals(1, staleCount.get());
+    }
+
+    @Test
+    public void itEmitsOnlyOneStaleEventForRepeatedInterruptions() throws Exception {
+        var dataSourceFactory = new ControllableDataSourceFactory();
+        var config = new LDConfig.Builder()
+            .startWait(Duration.ZERO)
+            .dataSource(dataSourceFactory)
+            .events(Components.noEvents())
+            .build();
+        var provider = new Provider("fake-key", config, Provider.INFINITE_START_WAIT);
+        var sink = dataSourceFactory.sink.get(1000, TimeUnit.MILLISECONDS);
+
+        var staleCount = new AtomicInteger();
+        CompletableFuture<Boolean> firstStaleEvent = new CompletableFuture<>();
+        OpenFeatureAPI.getInstance().on(ProviderEvent.PROVIDER_STALE, (detail) -> {
+            staleCount.incrementAndGet();
+            firstStaleEvent.complete(true);
+        });
+
+        sink.updateStatus(DataSourceStatusProvider.State.VALID, null);
+        OpenFeatureAPI.getInstance().setProviderAndWait(provider);
+
+        // Repeated interruptions, each with a different error, map to the same STALE provider state and emit once.
+        sink.updateStatus(DataSourceStatusProvider.State.INTERRUPTED,
+            DataSourceStatusProvider.ErrorInfo.fromHttpError(503));
+        assertTrue(firstStaleEvent.get(1000, TimeUnit.MILLISECONDS));
+
+        sink.updateStatus(DataSourceStatusProvider.State.INTERRUPTED,
+            DataSourceStatusProvider.ErrorInfo.fromHttpError(401));
+
+        Thread.sleep(200);
+        assertEquals(1, staleCount.get());
+    }
+
+    @Test
+    public void aStartWaitTimeTooLargeToRepresentWaitsIndefinitely() {
+        var config = new LDConfig.Builder()
+            .startWait(Duration.ZERO)
+            .dataSource(new DelayedDataSourceFactory(Duration.ofSeconds(30), false))
+            .events(Components.noEvents())
+            .build();
+        // Not Provider.INFINITE_START_WAIT, but another "forever" value. The range rule treats it as indefinite
+        // rather than passing it to the SDK, where converting it to milliseconds would overflow.
+        var provider = assertDoesNotThrow(() ->
+            new Provider("fake-key", config, Duration.ofSeconds(Long.MAX_VALUE)));
+
+        // Indefinite waiting does not block construction, so the provider is constructed promptly and not ready.
+        assertEquals(ProviderState.NOT_READY, provider.getState());
+        provider.shutdown();
+    }
+
+    @Test
+    public void aNullStartWaitTimeUsesTheDefaultAndDoesNotThrow() {
+        // A null start wait time is accepted rather than throwing; it falls through to the SDK's default.
+        assertDoesNotThrow(() -> {
+            var provider = new Provider("fake-key", new LDConfig.Builder().offline(true).build(), null);
+            provider.initialize(new ImmutableContext("context-key"));
+            assertEquals(ProviderState.READY, provider.getState());
+        });
+    }
+
+    @Test
+    public void shutdownEndsAnIndefiniteInitialization() throws Exception {
+        var dataSourceFactory = new ControllableDataSourceFactory();
+        var config = new LDConfig.Builder()
+            .startWait(Duration.ZERO)
+            .dataSource(dataSourceFactory)
+            .events(Components.noEvents())
+            .build();
+        var provider = new Provider("fake-key", config, Provider.INFINITE_START_WAIT);
+        dataSourceFactory.sink.get(1000, TimeUnit.MILLISECONDS);
+
+        // The data source never becomes valid, so an indefinite initialization would otherwise wait forever.
+        CompletableFuture<Throwable> initOutcome = new CompletableFuture<>();
+        var initThread = new Thread(() -> {
+            try {
+                provider.initialize(new ImmutableContext("context-key"));
+                initOutcome.complete(null);
+            } catch (Throwable t) {
+                initOutcome.complete(t);
+            }
+        });
+        initThread.start();
+
+        // Let initialization park on the wait, then shut down to end it.
+        Thread.sleep(200);
+        provider.shutdown();
+
+        var outcome = initOutcome.get(2000, TimeUnit.MILLISECONDS);
+        assertNotNull(outcome);
+        assertTrue(outcome instanceof RuntimeException);
+    }
+
+    @Test
+    public void aDirectProviderShutdownCancelsAnIndefiniteSetProviderAndWait() throws Exception {
+        // The documented escape for an indefinite setProviderAndWait that never becomes ready: a direct
+        // provider.shutdown() from another thread (OpenFeatureAPI.shutdown() would deadlock on the API lock
+        // setProviderAndWait holds).
+        var dataSourceFactory = new ControllableDataSourceFactory();
+        var config = new LDConfig.Builder()
+            .startWait(Duration.ZERO)
+            .dataSource(dataSourceFactory)
+            .events(Components.noEvents())
+            .build();
+        var provider = new Provider("fake-key", config, Provider.INFINITE_START_WAIT);
+        dataSourceFactory.sink.get(1000, TimeUnit.MILLISECONDS);
+
+        CompletableFuture<Throwable> setProviderOutcome = new CompletableFuture<>();
+        var waiter = new Thread(() -> {
+            try {
+                OpenFeatureAPI.getInstance().setProviderAndWait(provider);
+                setProviderOutcome.complete(null);
+            } catch (Throwable t) {
+                setProviderOutcome.complete(t);
+            }
+        });
+        waiter.start();
+
+        // The data source never becomes valid, so setProviderAndWait is parked indefinitely.
+        Thread.sleep(300);
+        assertFalse(setProviderOutcome.isDone());
+
+        provider.shutdown();
+
+        var outcome = setProviderOutcome.get(2000, TimeUnit.MILLISECONDS);
+        assertNotNull(outcome);
+    }
+
+    @Test
+    public void aFailedBoundedInitializationSurfacesTheDataSourceError() throws Exception {
+        var dataSourceFactory = new ControllableDataSourceFactory();
+        var config = new LDConfig.Builder()
+            .startWait(Duration.ZERO)
+            .dataSource(dataSourceFactory)
+            .events(Components.noEvents())
+            .build();
+        var provider = new Provider("fake-key", config, Duration.ZERO);
+        var sink = dataSourceFactory.sink.get(1000, TimeUnit.MILLISECONDS);
+
+        // A bounded initialization fails; the thrown error must carry the data source's last error detail.
+        sink.updateStatus(DataSourceStatusProvider.State.OFF,
+            DataSourceStatusProvider.ErrorInfo.fromHttpError(401));
+
+        var error = assertThrows(GeneralError.class,
+            () -> OpenFeatureAPI.getInstance().setProviderAndWait(provider));
+        assertTrue(error.getMessage().contains("401"));
+    }
+
+    @Test
+    public void startWaitClassificationIsBoundaryCorrect() {
+        // Indefinite: the sentinel, and any duration too large to represent in milliseconds.
+        assertTrue(Provider.isIndefinite(Provider.INFINITE_START_WAIT));
+        assertTrue(Provider.isIndefinite(Duration.ofSeconds(Long.MAX_VALUE)));
+        assertTrue(Provider.isIndefinite(Duration.ofMillis(Long.MAX_VALUE).plusMillis(1)));
+        // Bounded: exactly the largest representable millis, and smaller values.
+        assertFalse(Provider.isIndefinite(Duration.ofMillis(Long.MAX_VALUE)));
+        assertFalse(Provider.isIndefinite(Duration.ofSeconds(5)));
+        assertFalse(Provider.isIndefinite(Duration.ZERO));
+        assertFalse(Provider.isIndefinite(Duration.ofSeconds(-1)));
+        // Null is not indefinite; it falls through to the SDK default.
+        assertFalse(Provider.isIndefinite(null));
     }
 }
