@@ -235,4 +235,31 @@ public class ProviderTest {
                 valueConverter.toLdValue(new Value(trackingEventDetails)),
                 99.0);
     }
+
+    @Test
+    public void shutdownRemovesTheStatusAndFlagListeners() throws Exception {
+        ldProvider.initialize(new ImmutableContext("user-key"));
+        ldProvider.shutdown();
+
+        verify(mockedLdClient.getDataSourceStatusProvider()).removeStatusListener(any());
+        verify(mockedLdClient.getFlagTracker()).removeFlagChangeListener(any());
+    }
+
+    @Test
+    public void initializeFailsWhenTheClientIsInitializedButTheDataSourceIsOff() {
+        // The client's "initialized" latch is set, but its data source is OFF (permanently stopped). Early-ready
+        // must not report READY off the latch alone; initialization must fail.
+        LDClientInterface client = mock(LDClientInterface.class);
+        when(client.getFlagTracker()).thenReturn(mock(FlagTracker.class));
+        DataSourceStatusProvider dsp = mock(DataSourceStatusProvider.class);
+        when(dsp.getStatus()).thenReturn(new DataSourceStatusProvider.Status(
+            DataSourceStatusProvider.State.OFF, null, null));
+        when(client.getDataSourceStatusProvider()).thenReturn(dsp);
+        when(client.isInitialized()).thenReturn(true);
+
+        Provider provider = new Provider(client, false);
+
+        assertThrows(RuntimeException.class, () -> provider.initialize(new ImmutableContext("user-key")));
+        assertEquals(ProviderState.ERROR, provider.getState());
+    }
 }

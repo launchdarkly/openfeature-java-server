@@ -28,7 +28,7 @@ This matrix mirrors the [feature matrix of the OpenFeature SDK for Java](https:/
 | ✅      | Logging                         | The provider logs through the logging configuration of the `LDConfig` it is given.                                                                                                                                         |
 | ✅      | Domains                         | Domains bind clients to providers in the OpenFeature SDK; a separate provider instance may be registered per domain. The provider keeps no per-domain state, so it does not declare itself `isDomainScoped` and one instance may also be registered for several domains.                                                                                                       |
 | ✅      | Eventing                        | LaunchDarkly data source status changes are emitted as `PROVIDER_READY`, `PROVIDER_STALE`, and `PROVIDER_ERROR`. Flag changes are emitted as `PROVIDER_CONFIGURATION_CHANGED` with the changed flag key.                    |
-| ✅      | Initialization                  | `initialize` reports whether the LaunchDarkly client became ready within the start wait time, and a failure results in the `ERROR` state so that cached or fallback flag data is still evaluated. The wait is bounded by `LDConfig.Builder.startWait` or by the start wait time given to the provider constructor, which may be `Provider.INFINITE_START_WAIT` to wait indefinitely. |
+| ✅      | Initialization                  | `initialize` reports whether the LaunchDarkly client became ready within the start wait time, and a failure results in the `ERROR` state so that cached or fallback flag data is still evaluated. The wait is bounded by the start wait time given to the provider constructor (or, by default, the SDK's five second default); `Provider.INFINITE_START_WAIT` waits until the data source becomes valid or the provider is shut down. |
 | ✅      | Shutdown                        | `shutdown` closes the LaunchDarkly client. A closed client cannot be restarted, so a new provider instance is required afterward.                                                                                          |
 | ✅      | Transaction Context Propagation | Provided by the OpenFeature SDK, which merges the transaction context into the evaluation context before the provider is called; no provider support is required.                                                          |
 | ✅      | Extending                       | This provider is itself an extension of the OpenFeature SDK. The underlying LaunchDarkly client is available through `getLdClient()` for functionality with no OpenFeature equivalent.                                      |
@@ -107,16 +107,22 @@ There are several other attributes which have special functionality within a sin
 
 ### Initialization and Shutdown
 
-The LaunchDarkly supports Initialization and Shutdown using the OpenFeature API. The provider begins initialization as soon as it is constructed, and the underlying LaunchDarkly SDK will block execution based on the configured start wait time. If you wish to defer the blocking behavior, then you can use the `startWait` function when building the `LDConfig`, or pass a start wait time to the provider constructor.
+The provider supports Initialization and Shutdown using the OpenFeature API. The provider begins initialization as soon as it is constructed, and by default the underlying LaunchDarkly SDK blocks during construction for up to its default start wait time of five seconds. Pass a start wait time to the provider constructor to change this.
 
-The start wait time bounds the whole of initialization. `Duration.ZERO` waits nowhere, so initialization fails and the application learns when the provider becomes usable from provider events. `Provider.INFINITE_START_WAIT` waits indefinitely, without blocking during construction, until the data source becomes valid or fails permanently.
+The start wait time bounds the whole of initialization. A positive `Duration` blocks during construction for up to that long. `Duration.ZERO` waits nowhere, so initialization fails unless the client is already ready, and the application learns when the provider becomes usable from provider events. `Provider.INFINITE_START_WAIT` does not block during construction and waits during initialization until the data source becomes valid or the provider is shut down.
 
 ```java
 var provider = new Provider(sdkKey, config, Provider.INFINITE_START_WAIT);
 ```
 
-OpenFeature will report when the provider is ready, and additionally the `setProviderAndWait` function of the OpenFeature
-API can be used to wait until the provider is ready, or it has encountered a permanent error.
+`Provider.INFINITE_START_WAIT` must be passed as the constructor argument. It cannot be configured through `LDConfig.Builder.startWait`, which accepts only durations the SDK can represent in milliseconds.
+
+OpenFeature will report when the provider is ready, and additionally the `setProviderAndWait` function of the OpenFeature API can be used to wait for the outcome of initialization.
+
+A retry-conformant LaunchDarkly SDK retries a failing data source indefinitely rather than failing permanently, so pairing `Provider.INFINITE_START_WAIT` with `setProviderAndWait` blocks until the data source becomes valid, however long that takes. `setProviderAndWait` holds an internal OpenFeature API lock for the duration of that wait, so `OpenFeatureAPI.getInstance().shutdown()` **cannot** end it — that call would block on the same lock. To cancel an indefinite wait, either:
+
+- call `shutdown()` on the provider instance directly, from another thread (it does not take the OpenFeature API lock); or
+- register the provider with the non-blocking `setProvider` instead of `setProviderAndWait`, and observe readiness through provider events — then `OpenFeatureAPI.getInstance().shutdown()` works normally.
 
 It the provider has been shutdown, because the OpenFeature API has been shutdown, or because the provider was no longer in use by the OpenFeature API, then the underlying LaunchDarkly SDK will be closed.
 This is an important consideration if you are using the `getLdClient` method of the provider to access the underlying SDK instance.
