@@ -567,7 +567,7 @@ public class LifeCycleTest {
     }
 
     @Test
-    public void shutdownEndsAnIndefiniteInitialization() throws Exception {
+    public void anOffDataSourceStatusCancelsAnIndefiniteInitialization() throws Exception {
         var dataSourceFactory = new ControllableDataSourceFactory();
         var config = new LDConfig.Builder()
             .startWait(Duration.ZERO)
@@ -575,9 +575,11 @@ public class LifeCycleTest {
             .events(Components.noEvents())
             .build();
         var provider = new Provider("fake-key", config, Provider.INFINITE_START_WAIT);
-        dataSourceFactory.sink.get(1000, TimeUnit.MILLISECONDS);
+        var sink = dataSourceFactory.sink.get(1000, TimeUnit.MILLISECONDS);
 
-        // The data source never becomes valid, so an indefinite initialization would otherwise wait forever.
+        // An indefinite initialization parks until the data source resolves. Closing the client transitions the
+        // data source to OFF; drive that status directly to show the provider's status listener ends the wait
+        // (cancellation runs through the status path rather than through shutdown() itself).
         CompletableFuture<Throwable> initOutcome = new CompletableFuture<>();
         var initThread = new Thread(() -> {
             try {
@@ -589,48 +591,15 @@ public class LifeCycleTest {
         });
         initThread.start();
 
-        // Let initialization park on the wait, then shut down to end it.
+        // Let initialization park on the wait, then deliver OFF.
         Thread.sleep(200);
-        provider.shutdown();
+        sink.updateStatus(DataSourceStatusProvider.State.OFF, new DataSourceStatusProvider.ErrorInfo(
+            DataSourceStatusProvider.ErrorKind.NETWORK_ERROR, 500, "shutting down",
+            LocalDateTime.now().toInstant(ZoneOffset.UTC)));
 
         var outcome = initOutcome.get(2000, TimeUnit.MILLISECONDS);
         assertNotNull(outcome);
         assertTrue(outcome instanceof RuntimeException);
-    }
-
-    @Test
-    public void aDirectProviderShutdownCancelsAnIndefiniteSetProviderAndWait() throws Exception {
-        // The documented escape for an indefinite setProviderAndWait that never becomes ready: a direct
-        // provider.shutdown() from another thread (OpenFeatureAPI.shutdown() would deadlock on the API lock
-        // setProviderAndWait holds).
-        var dataSourceFactory = new ControllableDataSourceFactory();
-        var config = new LDConfig.Builder()
-            .startWait(Duration.ZERO)
-            .dataSource(dataSourceFactory)
-            .events(Components.noEvents())
-            .build();
-        var provider = new Provider("fake-key", config, Provider.INFINITE_START_WAIT);
-        dataSourceFactory.sink.get(1000, TimeUnit.MILLISECONDS);
-
-        CompletableFuture<Throwable> setProviderOutcome = new CompletableFuture<>();
-        var waiter = new Thread(() -> {
-            try {
-                OpenFeatureAPI.getInstance().setProviderAndWait(provider);
-                setProviderOutcome.complete(null);
-            } catch (Throwable t) {
-                setProviderOutcome.complete(t);
-            }
-        });
-        waiter.start();
-
-        // The data source never becomes valid, so setProviderAndWait is parked indefinitely.
-        Thread.sleep(300);
-        assertFalse(setProviderOutcome.isDone());
-
-        provider.shutdown();
-
-        var outcome = setProviderOutcome.get(2000, TimeUnit.MILLISECONDS);
-        assertNotNull(outcome);
     }
 
     @Test

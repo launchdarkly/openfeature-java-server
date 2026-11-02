@@ -7,7 +7,6 @@ import com.launchdarkly.sdk.server.Components;
 import com.launchdarkly.sdk.server.LDClient;
 import com.launchdarkly.sdk.server.LDConfig;
 import com.launchdarkly.sdk.server.interfaces.DataSourceStatusProvider;
-import com.launchdarkly.sdk.server.interfaces.FlagChangeListener;
 import com.launchdarkly.sdk.server.interfaces.LDClientInterface;
 import dev.openfeature.sdk.*;
 
@@ -64,10 +63,6 @@ public class Provider extends EventProvider {
     // Set when the provider is shut down, so a data source OFF caused by closing the client is recognized as an
     // expected teardown rather than reported as a provider error.
     private volatile boolean closed = false;
-
-    // Registered in initialize() and removed in shutdown(). Held so they can be removed rather than leaked.
-    private volatile FlagChangeListener flagChangeListener;
-    private volatile DataSourceStatusProvider.StatusListener statusListener;
 
     // The largest start wait time that the SDK can represent in milliseconds. Anything longer is treated as an
     // indefinite wait rather than being passed to the SDK.
@@ -246,20 +241,18 @@ public class Provider extends EventProvider {
         setInitializing(true);
         boolean successfullyInitialized = false;
         try {
-            // The client's "initialized" latch stays set once it has received data, even while the data source is
-            // interrupted; cached data can still be served, so that is reported READY. A data source which is OFF
-            // is excluded: the client cannot recover from it, so it must not be reported as ready.
-            DataSourceStatusProvider.Status currentStatus = client.getDataSourceStatusProvider().getStatus();
-            if (client.isInitialized() && currentStatus.getState() != DataSourceStatusProvider.State.OFF) {
+            // The client's "initialized" latch stays set once it has received data; a client that was ever valid
+            // can serve cached data, so it is reported READY.
+            if (client.isInitialized()) {
                 setState(ProviderState.READY);
             }
 
-            // Register listeners before evaluating the current status, so a change in between is not missed.
-            flagChangeListener = detail -> emitProviderConfigurationChanged(
-                ProviderEventDetails.builder().flagsChanged(Collections.singletonList(detail.getKey())).build());
-            client.getFlagTracker().addFlagChangeListener(flagChangeListener);
-            statusListener = this::handleDataSourceStatus;
-            client.getDataSourceStatusProvider().addStatusListener(statusListener);
+            // Register listeners before evaluating the current status, so a change in between is not missed. They
+            // are intentionally not removed on shutdown: closing the client transitions the data source to OFF,
+            // and the status listener must still be registered to observe that and complete an indefinite wait.
+            client.getFlagTracker().addFlagChangeListener(detail -> emitProviderConfigurationChanged(
+                ProviderEventDetails.builder().flagsChanged(Collections.singletonList(detail.getKey())).build()));
+            client.getDataSourceStatusProvider().addStatusListener(this::handleDataSourceStatus);
 
             if (getState() == ProviderState.READY) {
                 successfullyInitialized = true;
@@ -400,11 +393,6 @@ public class Provider extends EventProvider {
     @Override
     public void shutdown() {
         closed = true;
-        // Unblock an indefinite initialization that is still waiting. Under the retry-conformant SDK the data
-        // source never reports OFF for a transport failure, so shutting down is, besides the data source becoming
-        // valid, the only thing that ends the wait.
-        initialized.complete(false);
-        removeListeners();
         try {
             client.close();
         } catch (IOException e) {
@@ -412,17 +400,6 @@ public class Provider extends EventProvider {
         } finally {
             // Terminate the event emitter executor that EventProvider starts; otherwise it is leaked.
             super.shutdown();
-        }
-    }
-
-    private void removeListeners() {
-        var currentStatusListener = statusListener;
-        if (currentStatusListener != null) {
-            client.getDataSourceStatusProvider().removeStatusListener(currentStatusListener);
-        }
-        var currentFlagChangeListener = flagChangeListener;
-        if (currentFlagChangeListener != null) {
-            client.getFlagTracker().removeFlagChangeListener(currentFlagChangeListener);
         }
     }
 
