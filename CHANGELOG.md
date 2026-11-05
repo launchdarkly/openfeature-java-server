@@ -2,6 +2,17 @@
 
 All notable changes to the LaunchDarkly OpenFeature provider for the Server-Side SDK for Java will be documented in this file. This project adheres to [Semantic Versioning](http://semver.org).
 
+## [2.0.0](https://github.com/launchdarkly/openfeature-java-server/compare/1.2.1...2.0.0) (2026-11-04)
+
+
+### ⚠ BREAKING CHANGES
+
+* Add a start wait time option for initialization ([#66](https://github.com/launchdarkly/openfeature-java-server/issues/66))
+
+### Features
+
+* Add a start wait time option for initialization ([#66](https://github.com/launchdarkly/openfeature-java-server/issues/66)) ([240f19c](https://github.com/launchdarkly/openfeature-java-server/commit/240f19c6de9c0b17d2afd7144e00113a640dd773))
+
 ## [1.2.1](https://github.com/launchdarkly/openfeature-java-server/compare/1.2.0...1.2.1) (2026-09-08)
 
 
