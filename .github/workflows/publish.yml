@@ -37,7 +37,7 @@ jobs:
       id-token: write
       contents: write # For publishing documentation.
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: CI check
         uses: ./.github/actions/ci
@@ -45,7 +45,7 @@ jobs:
           run_tests: ${{ inputs.run_tests }}
           java_version: '11'
 
-      - uses: launchdarkly/gh-actions/actions/release-secrets@release-secrets-v1.1.0
+      - uses: launchdarkly/gh-actions/actions/release-secrets@release-secrets-v1.2.1
         name: Get secrets
         with:
           aws_assume_role: ${{ vars.AWS_ROLE_ARN }}
