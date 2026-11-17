@@ -8,7 +8,7 @@ jobs:
     permissions:
       contents: write # For publishing documentation.
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: CI check
         uses: ./.github/actions/ci
