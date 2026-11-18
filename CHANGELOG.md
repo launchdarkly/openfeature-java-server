@@ -2,6 +2,13 @@
 
 All notable changes to the LaunchDarkly OpenFeature provider for the Server-Side SDK for Java will be documented in this file. This project adheres to [Semantic Versioning](http://semver.org).
 
+## [2.0.1](https://github.com/launchdarkly/openfeature-java-server/compare/2.0.0...2.0.1) (2026-11-18)
+
+
+### Bug Fixes
+
+* ignore nested kind attribute in multi-kind context conversion ([#72](https://github.com/launchdarkly/openfeature-java-server/issues/72)) ([15a6086](https://github.com/launchdarkly/openfeature-java-server/commit/15a6086e6befac8f9c16081df905562572a24de6))
+
 ## [2.0.0](https://github.com/launchdarkly/openfeature-java-server/compare/1.2.1...2.0.0) (2026-11-04)
 
 
