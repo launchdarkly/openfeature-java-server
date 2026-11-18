@@ -143,8 +143,9 @@ class EvaluationContextConverter {
         ContextBuilder builder = LDContext.builder(ContextKind.of(kind), key);
 
         attributes.forEach((attrKey, attrValue) -> {
-            // Key has been processed, so we can skip it.
-            if (Objects.equals(attrKey, "key") || Objects.equals(attrKey, "targetingKey")) return;
+            // Key and kind have been processed, so we can skip them.
+            if (Objects.equals(attrKey, "key") || Objects.equals(attrKey, "targetingKey")
+                    || Objects.equals(attrKey, "kind")) return;
 
             if (Objects.equals(attrKey, "privateAttributes")) {
                 List<Value> valueList = attrValue.asList();
