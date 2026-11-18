@@ -45,7 +45,7 @@ Your project will need compatible versions of the LaunchDarkly Server-Side SDK f
 Example gradle dependencies:
 ```groovy
 implementation group: 'com.launchdarkly', name: 'launchdarkly-java-server-sdk', version: '[7.1.0, 8.0.0)'
-implementation 'dev.openfeature:sdk:[1.7.0,2.0.0)'
+implementation 'dev.openfeature:sdk:[1.16.0,2.0.0)'
 ```
 
 ### Installation
@@ -56,13 +56,13 @@ First, install the LaunchDarkly OpenFeature provider for the Server-Side SDK for
 <dependency>
   <groupId>com.launchdarkly</groupId>
   <artifactId>launchdarkly-openfeature-serverprovider</artifactId>
-  <version>0.1.0</version> <!-- use current version number -->
+  <version>2.0.0</version> <!-- use current version number -->
 </dependency>
 ```
 
 ```groovy
-implementation group: 'com.launchdarkly', name: 'launchdarkly-openfeature-serverprovider', version: '0.1.0'
-// Use current version number in place of 0.1.0.
+implementation group: 'com.launchdarkly', name: 'launchdarkly-openfeature-serverprovider', version: '2.0.0'
+// Use current version number in place of 2.0.0.
 ```
 
 ### Usage
