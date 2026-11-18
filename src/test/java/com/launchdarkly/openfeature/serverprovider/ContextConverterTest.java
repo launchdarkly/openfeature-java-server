@@ -54,6 +54,38 @@ public class ContextConverterTest {
     }
 
     @Test
+    public void itIgnoresNestedKindInMultiKindContexts() {
+        for (Value nestedKind : new Value[]{new Value("user"), new Value("multi"), new Value(42)}) {
+            HashMap<String, Value> orgAttributes = new HashMap<>();
+            orgAttributes.put("key", new Value("org-key"));
+            orgAttributes.put("kind", nestedKind);
+            HashMap<String, Value> userAttributes = new HashMap<>();
+            userAttributes.put("key", new Value("user-key"));
+            HashMap<String, Value> attributes = new HashMap<>();
+            attributes.put("kind", new Value("multi"));
+            attributes.put("org", new Value(new ImmutableStructure(orgAttributes)));
+            attributes.put("user", new Value(new ImmutableStructure(userAttributes)));
+
+            LDContext converted = evaluationContextConverter.toLdContext(new ImmutableContext(attributes));
+
+            assertTrue(converted.isValid());
+            assertEquals(2, converted.getIndividualContextCount());
+            LDContext org = converted.getIndividualContext(ContextKind.of("org"));
+            assertNotNull(org);
+            assertEquals(ContextKind.of("org"), org.getKind());
+            assertEquals("org-key", org.getKey());
+            for (String attribute : org.getCustomAttributeNames()) {
+                assertNotEquals("kind", attribute);
+            }
+            assertEquals(LDContext.create("user-key"), converted.getIndividualContext(ContextKind.of("user")));
+            assertEquals(LDContext.createMulti(
+                    LDContext.builder(ContextKind.of("org"), "org-key").build(),
+                    LDContext.create("user-key")), converted);
+            assertFalse(logs().containsAnyLogs());
+        }
+    }
+
+    @Test
     public void itLogsAnErrorWhenThereIsNoTargetingKey() {
         evaluationContextConverter.toLdContext(new ImmutableContext());
 
