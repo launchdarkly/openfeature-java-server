@@ -45,7 +45,7 @@ jobs:
           run_tests: ${{ inputs.run_tests }}
           java_version: '11'
 
-      - uses: launchdarkly/gh-actions/actions/release-secrets@release-secrets-v1.2.1
+      - uses: launchdarkly/gh-actions/actions/release-secrets@publish-pages-v1.0.4
         name: Get secrets
         with:
           aws_assume_role: ${{ vars.AWS_ROLE_ARN }}
@@ -65,7 +65,7 @@ jobs:
           sonatype_username: ${{ env.SONATYPE_USER_NAME }}
           sonatype_password: ${{ env.SONATYPE_PASSWORD }}
 
-      - uses: launchdarkly/gh-actions/actions/publish-pages@publish-pages-v1.0.1
+      - uses: launchdarkly/gh-actions/actions/publish-pages@publish-pages-v1.0.4
         name: 'Publish to Github pages'
         if: ${{ inputs.dry_run == 'false' }}
         with:
