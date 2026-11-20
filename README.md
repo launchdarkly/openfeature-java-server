@@ -12,7 +12,7 @@ This provider is designed primarily for use in multi-user systems such as web se
 
 ## Supported Java versions
 
-This version of the LaunchDarkly provider works with Java 11 and above.
+While this version of the LaunchDarkly provider requires Java 11 or later, you should use the latest patched version of a supported Java release.
 
 ## Feature matrix
 
