@@ -16,7 +16,7 @@ jobs:
           run_tests: 'false'
           java_version: '11'
 
-      - uses: launchdarkly/gh-actions/actions/publish-pages@publish-pages/v1.0.4
+      - uses: launchdarkly/gh-actions/actions/publish-pages@publish-pages/v1
         name: 'Publish to Github pages'
         with:
           docs_path: build/docs/javadoc
