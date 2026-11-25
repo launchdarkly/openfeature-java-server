@@ -36,7 +36,7 @@ class EvaluationContextConverter {
     public LDContext toLdContext(EvaluationContext evaluationContext) {
         // Using the kind as a map here because getting a value from an immutable context that doesn't exist
         // throws. https://github.com/open-feature/java-sdk/pull/300
-        Map<String, Value> attributes = evaluationContext.asMap();
+        Map<String, Value> attributes = evaluationContext.asUnmodifiableMap();
 
         Value kindAsValue = attributes.get("kind");
 
@@ -45,7 +45,7 @@ class EvaluationContextConverter {
             String kindString = kindAsValue.asString();
             if (Objects.equals(kindString, "multi")) {
                 // A multi-context.
-                return BuildMultiContext(evaluationContext);
+                return BuildMultiContext(attributes);
             } else {
                 // Single context with specified kind.
                 finalKind = kindString;
@@ -60,7 +60,7 @@ class EvaluationContextConverter {
 
         targetingKey = getTargetingKey(targetingKey, keyAsValue);
 
-        return BuildSingleContext(evaluationContext.asMap(), finalKind, targetingKey);
+        return BuildSingleContext(attributes, finalKind, targetingKey);
     }
 
     private boolean isNullOrEmpty(String value) {
@@ -103,13 +103,13 @@ class EvaluationContextConverter {
     /**
      * Build a multi-context from an evaluation context.
      *
-     * @param evaluationContext The evaluation context containing multi-context information.
+     * @param contextAttributes The attributes of the evaluation context containing multi-context information.
      * @return The built context.
      */
-    private LDContext BuildMultiContext(EvaluationContext evaluationContext) {
+    private LDContext BuildMultiContext(Map<String, Value> contextAttributes) {
         ContextMultiBuilder multiBuilder = LDContext.multiBuilder();
 
-        evaluationContext.asMap().forEach((kind, attributes) -> {
+        contextAttributes.forEach((kind, attributes) -> {
             // Do not need to do anything for the kind key.
             if (Objects.equals(kind, "kind")) return;
 
@@ -119,7 +119,7 @@ class EvaluationContextConverter {
                 return;
             }
 
-            Map<String, Value> attributesMap = attributes.asStructure().asMap();
+            Map<String, Value> attributesMap = attributes.asStructure().asUnmodifiableMap();
             Value keyAsValue = attributesMap.get("key");
             Value targetingKeyAsValue = attributesMap.get("targetingKey");
             String targetingKey = targetingKeyAsValue != null ? targetingKeyAsValue.asString() : "";
